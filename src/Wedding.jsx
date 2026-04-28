@@ -571,12 +571,26 @@ function VenueCard({ eyebrow, title, text }) {
 }
 
 function MiniDetail({ label, value }) {
+  const isLocation = true;
+
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-[#cfc6b6] bg-white/55 px-5 py-4">
-      <span className="text-xs uppercase tracking-[0.28em] text-[#8a9784]">
+    <div
+      className={`rounded-2xl border border-[#cfc6b6] bg-white/55 px-5 py-4 ${
+        isLocation
+          ? "flex flex-col items-center gap-2 text-center"
+          : "flex items-center justify-between gap-4"
+      }`}
+    >
+      <span className="shrink-0 text-xs uppercase tracking-[0.28em] text-[#8a9784]">
         {label}
       </span>
-      <span className="font-serif text-xl text-[#3b3228]">{value}</span>
+      <span
+        className={`font-serif leading-tight text-[#3b3228] ${
+          isLocation ? "text-2xl md:text-xl" : "text-xl md:text-2xl"
+        }`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
