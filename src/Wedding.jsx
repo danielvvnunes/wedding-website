@@ -468,7 +468,7 @@ export default function WeddingWebsite() {
           />
           <VenueCard
             eyebrow="Celebração"
-            title="Cocktail, jantar e festa"
+            title="Cocktail, jantar e festa!"
             text="Depois da cerimónia, continuamos o dia com brindes, comida, música e muitas memórias para guardar."
           />
         </div>
