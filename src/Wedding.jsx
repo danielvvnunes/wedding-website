@@ -429,7 +429,7 @@ export default function WeddingWebsite() {
                   </p>
                 </div>
 
-                <h1 className="title-reveal font-serif text-7xl leading-[0.9] tracking-[-0.05em] text-[#3b3228] md:text-9xl lg:text-[9.5rem]">
+                <h1 className="handwritten text-7xl leading-none text-[#3b3228] md:text-9xl">
                   <span className="script-shadow block">Francisca</span>
 
                   <span className="gold-glow mt-4 block tracking-[-0.05em]">
@@ -521,7 +521,7 @@ export default function WeddingWebsite() {
                   O nosso dia
                 </p>
 
-                <h2 className="font-serif text-5xl leading-tight md:text-7xl">
+                <h2 className="handwritten text-5xl leading-tight md:text-7xl">
                   Uma celebração feita de detalhes.
                 </h2>
 
@@ -571,7 +571,7 @@ export default function WeddingWebsite() {
                 Countdown
               </p>
 
-              <h2 className="font-serif text-5xl leading-tight md:text-7xl">
+              <h2 className="handwritten text-5xl leading-tight md:text-7xl">
                 Estamos quase a dizer “sim”.
               </h2>
 
@@ -622,7 +622,7 @@ export default function WeddingWebsite() {
                 Programa
               </p>
 
-              <h2 className="font-serif text-5xl leading-tight md:text-7xl">
+              <h2 className="handwritten text-5xl leading-tight md:text-7xl">
                 O ritmo do dia
               </h2>
 
@@ -696,7 +696,7 @@ export default function WeddingWebsite() {
                 Locais
               </p>
 
-              <h2 className="font-serif text-5xl leading-tight md:text-7xl">
+              <h2 className="handwritten text-5xl leading-tight md:text-7xl">
                 Onde tudo acontece
               </h2>
 
@@ -756,7 +756,7 @@ export default function WeddingWebsite() {
                 <p className="mb-4 text-xs uppercase tracking-[0.45em] text-[#d6b98c]">
                   RSVP
                 </p>
-                <h2 className="font-serif text-5xl leading-tight md:text-7xl">
+                <h2 className="handwritten text-5xl leading-tight md:text-7xl">
                   Confirmem a vossa presença
                 </h2>
                 <div className="mx-auto my-8 h-px w-28 bg-[#d6b98c]" />
