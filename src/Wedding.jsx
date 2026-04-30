@@ -52,18 +52,21 @@ const customStyles = `
   }
 
   .invitation-content {
+    opacity: 0;
     filter: blur(18px);
     transform: scale(1.03);
     transition:
+      opacity 900ms ease,
       filter 1200ms ease,
       transform 1200ms ease;
   }
 
   .invitation-content-visible {
+    opacity: 1;
     filter: blur(0);
     transform: scale(1);
   }
-
+    
   @keyframes pageEnter {
     from {
       opacity: 0;
@@ -349,7 +352,9 @@ export default function WeddingWebsite() {
       )}
       <div
         className={`page-enter invitation-content ${
-          isOpening || isOpen ? "invitation-content-visible" : ""
+          isOpen
+            ? "invitation-content-visible"
+            : "pointer-events-none opacity-0"
         }`}
       >
         <div className="ornament-divider" />
@@ -666,7 +671,20 @@ export default function WeddingWebsite() {
               <VenueCard
                 eyebrow="Celebração"
                 icon="🥂"
-                title="Cocktail, jantar e festa!"
+                title={
+                  <>
+                    <span className="md:hidden">
+                      Cocktail,
+                      <br />
+                      jantar,
+                      <br />e festa!
+                    </span>
+
+                    <span className="hidden md:inline">
+                      Cocktail, jantar e festa!
+                    </span>
+                  </>
+                }
                 text="Depois da cerimónia, continuamos o dia com brindes, comida, música e muitas memórias para guardar."
                 cta="Mais detalhes em breve"
               />
