@@ -642,52 +642,49 @@ export default function WeddingWebsite() {
                 detalhe deste dia especial.
               </p>
             </div>
-            <div className="relative mx-auto max-w-3xl rounded-[2.8rem] border border-[#cfc6b6] bg-white/40 p-6 shadow-2xl backdrop-blur md:p-10">
-              <div className="space-y-5">
-                <div className="reveal-on-scroll reveal-delay-1">
-                  <Timeline
-                    time="11:00"
-                    icon="✦"
-                    title="Chegada dos convidados"
-                    text="Receção junto à cerimónia."
-                  />
-                </div>
+            <div className="relative mx-auto max-w-3xl px-2 md:px-8">
+              <div className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-[#3b3228]/70 md:block" />
 
-                <div className="reveal-on-scroll reveal-delay-2">
-                  <Timeline
-                    time="11:30"
-                    icon="⛪"
-                    title="Cerimónia"
-                    text="O momento em que dizemos sim."
-                  />
-                </div>
+              <div className="space-y-12 md:space-y-16">
+                <Timeline
+                  side="left"
+                  time="11:00"
+                  icon="✦"
+                  title="Chegada dos convidados"
+                  text="Receção junto à cerimónia."
+                />
 
-                <div className="reveal-on-scroll reveal-delay-3">
-                  <Timeline
-                    time="14:00"
-                    icon="🥂"
-                    title="Cocktail"
-                    text="Brindes, conversas e primeiros abraços."
-                  />
-                </div>
+                <Timeline
+                  side="right"
+                  time="11:30"
+                  icon="⛪"
+                  title="Cerimónia"
+                  text="O momento em que dizemos sim."
+                />
 
-                <div className="reveal-on-scroll reveal-delay-4">
-                  <Timeline
-                    time="20:00"
-                    icon="🍽️"
-                    title="Jantar"
-                    text="À mesa, com todos os que fazem parte da nossa história."
-                  />
-                </div>
+                <Timeline
+                  side="left"
+                  time="14:00"
+                  icon="🥂"
+                  title="Cocktail"
+                  text="Brindes, conversas e primeiros abraços."
+                />
 
-                <div className="reveal-on-scroll reveal-delay-5">
-                  <Timeline
-                    time="22:30"
-                    icon="✨"
-                    title="Festa"
-                    text="Música, dança e memórias para guardar."
-                  />
-                </div>
+                <Timeline
+                  side="right"
+                  time="20:00"
+                  icon="🍽️"
+                  title="Jantar"
+                  text="À mesa, com todos os que fazem parte da nossa história."
+                />
+
+                <Timeline
+                  side="left"
+                  time="22:30"
+                  icon="✨"
+                  title="Festa"
+                  text="Música, dança e memórias para guardar."
+                />
               </div>
             </div>
           </div>
@@ -1026,7 +1023,7 @@ function MiniDetail({ label, value }) {
 function CountdownBox({ number, label }) {
   return (
     <div className="min-w-[96px] text-center">
-      <div className="countdown-number handwritten text-6xl leading-none text-[#f8ead0] drop-shadow-[0_2px_10px_rgba(0,0,0,0.20)] md:text-7xl">
+      <div className="countdown-number  text-6xl leading-none text-[#f8ead0] drop-shadow-[0_2px_10px_rgba(0,0,0,0.20)] md:text-7xl">
         {String(number).padStart(2, "0")}
       </div>
 
@@ -1037,26 +1034,55 @@ function CountdownBox({ number, label }) {
   );
 }
 
-function Timeline({ time, icon, title, text }) {
+function Timeline({ time, icon, title, text, side = "left" }) {
+  const isLeft = side === "left";
+
   return (
-    <div className="group relative grid gap-4 rounded-[2rem] border border-[#cfc6b6]/80 bg-[#f8f4ec]/65 p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:bg-white/75 hover:shadow-xl md:grid-cols-[86px_1fr] md:items-center">
-      <div className="relative z-10 flex items-center gap-3 md:block">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#c2a45f]/50 bg-white text-xl shadow-inner md:mx-auto relative">
-          <span className="absolute inset-[-6px] rounded-full border border-[#c2a45f]/20" />
-          {icon}
+    <div className="reveal-on-scroll relative grid items-center gap-5 md:grid-cols-[1fr_72px_1fr]">
+      <div
+        className={`text-center md:text-right ${
+          isLeft ? "md:block" : "md:invisible"
+        }`}
+      >
+        <div className="flex items-center justify-center gap-3 md:justify-end">
+          <span className="text-xl text-[#3b3228]">{icon}</span>
+          <span className="text-sm uppercase tracking-[0.35em] text-[#9b7f42]">
+            {time}
+          </span>
         </div>
 
-        <div className="mt-0 font-serif text-2xl text-[#9b7f42] md:mt-3 md:text-center">
-          {time}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-serif text-2xl text-[#3b3228] md:text-3xl">
+        <h3 className="handwritten mt-2 text-4xl leading-none text-[#3b3228] md:text-5xl">
           {title}
         </h3>
 
-        <p className="mt-2 leading-7 text-[#6c5b4a]">{text}</p>
+        <div className="ml-auto mt-3 hidden h-px w-36 border-t border-dotted border-[#3b3228]/60 md:block" />
+
+        <p className="mt-3 text-sm leading-6 text-[#6c5b4a]">{text}</p>
+      </div>
+
+      <div className="relative hidden justify-center md:flex">
+        <span className="relative z-10 h-4 w-4 rounded-full bg-[#3b3228]" />
+      </div>
+
+      <div
+        className={`text-center md:text-left ${
+          !isLeft ? "md:block" : "md:invisible"
+        }`}
+      >
+        <div className="flex items-center justify-center gap-3 md:justify-start">
+          <span className="text-xl text-[#3b3228]">{icon}</span>
+          <span className="text-sm uppercase tracking-[0.35em] text-[#9b7f42]">
+            {time}
+          </span>
+        </div>
+
+        <h3 className="handwritten mt-2 text-4xl leading-none text-[#3b3228] md:text-5xl">
+          {title}
+        </h3>
+
+        <div className="mt-3 hidden h-px w-36 border-t border-dotted border-[#3b3228]/60 md:block" />
+
+        <p className="mt-3 text-sm leading-6 text-[#6c5b4a]">{text}</p>
       </div>
     </div>
   );
