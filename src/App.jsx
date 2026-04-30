@@ -1,12 +1,11 @@
-import "./App.css";
+import { Routes, Route } from "react-router-dom";
 import WeddingWebsite from "./Wedding";
 
-function App() {
+export default function App() {
   return (
-    <>
-      <WeddingWebsite />
-    </>
+    <Routes>
+      <Route path="/" element={<WeddingWebsite />} />
+      <Route path="/c/:guestSlug" element={<WeddingWebsite />} />
+    </Routes>
   );
 }
-
-export default App;

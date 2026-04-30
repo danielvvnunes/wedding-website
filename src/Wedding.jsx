@@ -3,112 +3,9 @@ import igrejaImg from "./assets/igreja.png";
 import casalLineImg from "./assets/casal-line.png";
 import EnvelopeLeft from "./assets/envelope-left.png";
 import EnvelopeRight from "./assets/envelope-right.png";
+import { useParams } from "react-router-dom";
 
 const customStyles = `
-  @keyframes invitationFadeOut {
-    0% { opacity: 1; transform: scale(1); }
-    100% { opacity: 0; transform: scale(1.03); }
-  }
-
-  @keyframes cardReveal {
-    0% { transform: translate(-50%, 40px) scale(0.96); opacity: 0; }
-    60% { opacity: 1; }
-    100% { transform: translate(-50%, -26px) scale(1); opacity: 1; }
-  }
-
-  @keyframes sealPulse {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); }
-    50% { transform: translate(-50%, -50%) scale(1.045); }
-  }
-
-  @keyframes waxShine {
-    0% { transform: translateX(-120%) rotate(25deg); opacity: 0; }
-    35% { opacity: 0.45; }
-    100% { transform: translateX(120%) rotate(25deg); opacity: 0; }
-  }
-
-  .invitation-opening {
-    animation: invitationFadeOut 900ms ease forwards;
-    animation-delay: 1050ms;
-  }
-
-  .envelope-card {
-    transform: translate(-50%, 40px) scale(0.96);
-    opacity: 0;
-  }
-
-  .invitation-opening .envelope-card {
-    animation: cardReveal 1050ms cubic-bezier(.22,1,.36,1) forwards;
-  }
-
-  .envelope-flap {
-    transform-origin: top center;
-    transition: transform 1050ms cubic-bezier(.22,1,.36,1), opacity 1050ms ease;
-  }
-
-  .invitation-opening .envelope-flap {
-    transform: rotateX(180deg);
-    opacity: 0.22;
-  }
-
-  .seal {
-    animation: sealPulse 2.2s ease-in-out infinite;
-    clip-path: polygon(
-      50% 0%, 58% 6%, 68% 3%, 76% 11%, 88% 13%, 91% 25%,
-      100% 33%, 95% 45%, 100% 55%, 93% 65%, 95% 77%, 84% 84%,
-      78% 96%, 65% 93%, 55% 100%, 45% 94%, 33% 98%, 25% 89%,
-      13% 86%, 10% 73%, 0% 65%, 6% 53%, 1% 42%, 8% 31%,
-      6% 20%, 18% 14%, 25% 4%, 38% 7%
-    );
-  }
-
-  .seal::before {
-    content: "";
-    position: absolute;
-    inset: 13px;
-    border-radius: 999px;
-    border: 2px solid rgba(255, 232, 176, .42);
-    box-shadow:
-      inset 0 5px 12px rgba(255, 255, 255, .28),
-      inset 0 -8px 14px rgba(86, 55, 18, .25),
-      0 2px 5px rgba(71, 45, 18, .22);
-  }
-
-  .seal::after {
-    content: "";
-    position: absolute;
-    inset: -25%;
-    border-radius: 999px;
-    background:
-      radial-gradient(circle at 34% 24%, rgba(255,255,255,.55), transparent 18%),
-      linear-gradient(105deg, transparent 35%, rgba(255,255,255,.42) 48%, transparent 62%);
-    animation: waxShine 3.4s ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  .wax-ridge {
-    clip-path: polygon(
-      50% 0%, 58% 6%, 68% 3%, 76% 11%, 88% 13%, 91% 25%,
-      100% 33%, 95% 45%, 100% 55%, 93% 65%, 95% 77%, 84% 84%,
-      78% 96%, 65% 93%, 55% 100%, 45% 94%, 33% 98%, 25% 89%,
-      13% 86%, 10% 73%, 0% 65%, 6% 53%, 1% 42%, 8% 31%,
-      6% 20%, 18% 14%, 25% 4%, 38% 7%
-    );
-  }
-
-  .wax-monogram {
-    text-shadow:
-      0 1px 0 rgba(255,255,255,.18),
-      0 -2px 5px rgba(75,45,12,.45);
-    filter: drop-shadow(0 2px 1px rgba(90,55,18,.22));
-  }
-
-  .invitation-opening .seal {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.72);
-    transition: all 520ms ease;
-  }
-
   .paper-texture {
     background-image:
       radial-gradient(circle at 18% 20%, rgba(255,255,255,.72) 0 1px, transparent 1px),
@@ -123,29 +20,6 @@ const customStyles = `
       radial-gradient(ellipse at center, transparent 42%, rgba(138,151,132,.15) 43%, transparent 46%);
     background-size: 84px 58px, 72px 52px;
     background-position: 0 0, 36px 26px;
-  }
-
-  .botanical-corner {
-    position: absolute;
-    width: 180px;
-    height: 230px;
-    opacity: .28;
-    background-image:
-      radial-gradient(ellipse at 50% 86%, rgba(138,151,132,.34) 0 9px, transparent 10px),
-      radial-gradient(ellipse at 37% 70%, rgba(138,151,132,.28) 0 7px, transparent 8px),
-      radial-gradient(ellipse at 62% 64%, rgba(138,151,132,.28) 0 7px, transparent 8px),
-      radial-gradient(ellipse at 30% 48%, rgba(138,151,132,.24) 0 6px, transparent 7px),
-      radial-gradient(ellipse at 70% 42%, rgba(138,151,132,.24) 0 6px, transparent 7px),
-      linear-gradient(72deg, transparent 48%, rgba(138,151,132,.42) 49%, rgba(138,151,132,.42) 50%, transparent 51%);
-    background-repeat: no-repeat;
-  }
-
-  .gold-fold-left {
-    background: linear-gradient(145deg, transparent 49.65%, rgba(194,164,95,.85) 50%, rgba(194,164,95,.85) 50.35%, transparent 51%);
-  }
-
-  .gold-fold-right {
-    background: linear-gradient(35deg, transparent 49.65%, rgba(194,164,95,.85) 50%, rgba(194,164,95,.85) 50.35%, transparent 51%);
   }
 
   .ornament-line {
@@ -177,33 +51,13 @@ const customStyles = `
       linear-gradient(105deg, transparent 49%, rgba(138,151,132,.34) 50%, transparent 51%);
   }
 
-  .section-fade {
-    position: relative;
-  }
-
-  .section-fade::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    height: 120px;
-    z-index: 5;
-    pointer-events: none;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      var(--fade-to)
-    );
-  }
-
   .invitation-content {
-  filter: blur(18px);
-  transform: scale(1.03);
-  transition:
-    filter 1200ms ease,
-    transform 1200ms ease;
-}
+    filter: blur(18px);
+    transform: scale(1.03);
+    transition:
+      filter 1200ms ease,
+      transform 1200ms ease;
+  }
 
   .invitation-content-visible {
     filter: blur(0);
@@ -211,175 +65,142 @@ const customStyles = `
   }
 
   @keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
   .page-enter {
     animation: pageEnter 900ms ease both;
   }
 
   @keyframes titleReveal {
-  from {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+      letter-spacing: -0.08em;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      letter-spacing: -0.05em;
+    }
+  }
+
+  .title-reveal {
+    animation: titleReveal 1100ms cubic-bezier(.22,1,.36,1) both;
+  }
+
+  @keyframes goldGlow {
+    0%, 100% {
+      filter:
+        drop-shadow(0 0 0px rgba(194,164,95,0))
+        drop-shadow(0 6px 18px rgba(194,164,95,.12));
+    }
+
+    50% {
+      filter:
+        drop-shadow(0 0 4px rgba(194,164,95,.18))
+        drop-shadow(0 8px 22px rgba(194,164,95,.18));
+    }
+  }
+
+  .gold-glow {
+    display: block;
+    color: #c2a45f;
+    animation: goldGlow 4.8s ease-in-out infinite;
+  }
+
+  @keyframes softUp {
+    from {
+      opacity: 0;
+      transform: translateY(26px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .soft-up {
+    animation: softUp 900ms ease both;
+  }
+
+  @keyframes countdownFlip {
+    from {
+      transform: translateY(8px);
+      opacity: .4;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .countdown-number {
+    animation: countdownFlip .4s ease;
+  }
+
+  .ornament-divider {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(194,164,95,0.35),
+      transparent
+    );
+  }
+
+  @keyframes floatCard {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .float-card {
+    animation: floatCard 7s ease-in-out infinite;
+  }
+
+  .reveal-on-scroll {
     opacity: 0;
-    transform: translateY(24px);
-    letter-spacing: -0.08em;
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    letter-spacing: -0.05em;
-  }
-}
-
-.title-reveal {
-  animation: titleReveal 1100ms cubic-bezier(.22,1,.36,1) both;
-}
-
-@keyframes goldGlow {
-  0%, 100% {
-    filter:
-      drop-shadow(0 0 0px rgba(194,164,95,0))
-      drop-shadow(0 6px 18px rgba(194,164,95,.12));
+    transform: translateY(34px);
+    transition:
+      opacity 900ms ease,
+      transform 900ms cubic-bezier(.22,1,.36,1);
   }
 
-  50% {
-    filter:
-      drop-shadow(0 0 4px rgba(194,164,95,.18))
-      drop-shadow(0 8px 22px rgba(194,164,95,.18));
-  }
-}
-
-.gold-glow {
-  display: block;
-  color: #c2a45f;
-  animation: goldGlow 4.8s ease-in-out infinite;
-}
-
-@keyframes softUp {
-  from {
-    opacity: 0;
-    transform: translateY(26px);
-  }
-  to {
+  .reveal-on-scroll.is-visible {
     opacity: 1;
     transform: translateY(0);
   }
-}
 
-.soft-up {
-  animation: softUp 900ms ease both;
-}
-
-@keyframes countdownFlip {
-  from {
-    transform: translateY(8px);
-    opacity: .4;
+  .reveal-delay-1 {
+    transition-delay: 120ms;
   }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+
+  .reveal-delay-2 {
+    transition-delay: 220ms;
   }
-}
 
-.countdown-number {
-  animation: countdownFlip .4s ease;
-}
-
-.ornament-divider {
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(194,164,95,0.35),
-    transparent
-  );
-}
-
-@keyframes floatCard {
-  0%, 100% {
-    transform: translateY(0);
+  .reveal-delay-3 {
+    transition-delay: 320ms;
   }
-  50% {
-    transform: translateY(-8px);
+
+  .reveal-delay-4 {
+    transition-delay: 420ms;
   }
-}
 
-.float-card {
-  animation: floatCard 7s ease-in-out infinite;
-}
-
-@keyframes lineShimmer {
-  0% {
-    opacity: .45;
-    transform: scaleX(.92);
+  .reveal-delay-5 {
+    transition-delay: 520ms;
   }
-  50% {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-  100% {
-    opacity: .45;
-    transform: scaleX(.92);
-  }
-}
-
-.line-shimmer {
-  transform-origin: center;
-  animation: lineShimmer 4.8s ease-in-out infinite;
-}
-
-@keyframes softBreath {
-  0%, 100% {
-    box-shadow: 0 20px 55px rgba(60, 45, 22, .10);
-  }
-  50% {
-    box-shadow: 0 26px 70px rgba(60, 45, 22, .16);
-  }
-}
-
-.soft-breath {
-  animation: softBreath 6s ease-in-out infinite;
-}
-
-.reveal-on-scroll {
-  opacity: 0;
-  transform: translateY(34px);
-  transition:
-    opacity 900ms ease,
-    transform 900ms cubic-bezier(.22,1,.36,1);
-}
-
-.reveal-on-scroll.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.reveal-delay-1 {
-  transition-delay: 120ms;
-}
-
-.reveal-delay-2 {
-  transition-delay: 220ms;
-}
-
-.reveal-delay-3 {
-  transition-delay: 320ms;
-}
-
-.reveal-delay-4 {
-  transition-delay: 420ms;
-}
-
-.reveal-delay-5 {
-  transition-delay: 520ms;
-}
 `;
 
 function useRevealOnScroll() {
@@ -404,6 +225,12 @@ function useRevealOnScroll() {
   }, []);
 }
 
+const guests = {
+  "tia-elsa": "Tia Elsa",
+  "avo-maria": "Avó Maria",
+  "joao-e-ana": "João e Ana",
+};
+
 export default function WeddingWebsite() {
   const [isOpen, setIsOpen] = useState(true);
   const [isOpening, setIsOpening] = useState(false);
@@ -412,6 +239,10 @@ export default function WeddingWebsite() {
 
   const weddingDateTime = new Date("2026-09-26T11:30:00");
   const [timeLeft, setTimeLeft] = useState(getTimeRemaining());
+
+  const { guestSlug } = useParams();
+
+  const guestName = guestSlug ? guests[guestSlug] : null;
 
   function getTimeRemaining() {
     const total = weddingDateTime - new Date();
@@ -485,85 +316,12 @@ export default function WeddingWebsite() {
       <style>{customStyles}</style>
       {isMobile && !isOpen && (
         <section
-          // className={`fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#d9dfcf] px-6 ${
-          //   isOpening ? "invitation-opening" : ""
           // }`}
           className={`fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-transparent ${
             isOpening ? "pointer-events-none" : ""
           }`}
         >
-          {/* <div className="absolute left-[-8rem] top-[-8rem] h-80 w-80 rounded-full bg-[#f1ebe2]/60 blur-3xl" />
-          <div className="absolute bottom-[-10rem] right-[-8rem] h-96 w-96 rounded-full bg-[#8a9784]/30 blur-3xl" /> */}
-
           <div className="absolute inset-0 perspective-[1600px]">
-            {/* <div className="relative h-[92vh] max-h-[880px] w-[92vw] max-w-[430px] overflow-hidden rounded-[2.2rem] border border-[#cfc6b6] bg-[#f1ebe2] shadow-2xl paper-texture">
-              <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-[#f1ebe2] to-[#e8e4de]" />
-              <div className="botanical-corner bottom-[-34px] left-[-42px] z-10 rotate-[-18deg]" />
-              <div className="botanical-corner bottom-[-10px] right-[-58px] z-10 rotate-[18deg] scale-x-[-1]" />
-              <div className="botanical-corner top-[72px] left-1/2 z-10 h-32 w-32 -translate-x-1/2 rotate-[42deg] opacity-20" />
-
-              <div className="envelope-card absolute left-1/2 top-[8%] z-10 w-[82%] rounded-[1.8rem] border border-[#cfc6b6]/80 bg-[#f1ebe2]/95 px-7 py-9 text-center shadow-xl backdrop-blur-sm">
-                <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-[#c2a45f] font-serif text-3xl text-[#c2a45f]">
-                  F · D
-                </div>
-                <p className="mb-3 text-[10px] uppercase tracking-[0.42em] text-[#c2a45f]">
-                  Wedding Invitation
-                </p>
-                <h1 className="font-serif text-5xl leading-tight text-[#3b3228]">
-                  Francisca
-                  <span className="block text-3xl italic text-[#c2a45f]">
-                    &
-                  </span>
-                  Daniel
-                </h1>
-                <p className="mx-auto mt-5 max-w-xs text-sm leading-6 text-[#6c5b4a]">
-                  Temos o maior gosto em convidar-vos para celebrar connosco
-                  este dia tão especial.
-                </p>
-              </div>
-
-              <div className="absolute left-1/2 top-[17%] z-20 -translate-x-1/2 text-center">
-                <p className="text-xs text-[#8a9784]">❦</p>
-                <p className="mt-5 font-serif text-5xl tracking-[0.18em] text-[#c2a45f]">
-                  F | D
-                </p>
-                <p className="mt-5 text-xs text-[#8a9784]">❦</p>
-              </div>
-
-              <div className="envelope-flap absolute inset-x-0 top-0 z-30 h-[56%] origin-top rounded-t-[2.2rem] bg-[#f1ebe2]/95 paper-texture [clip-path:polygon(0_0,100%_0,50%_100%)]" />
-              <div className="absolute inset-x-0 top-0 z-31 h-[56%] gold-fold-left [clip-path:polygon(0_0,100%_0,50%_100%)]" />
-              <div className="absolute inset-x-0 top-0 z-31 h-[56%] gold-fold-right [clip-path:polygon(0_0,100%_0,50%_100%)]" />
-
-              <div className="absolute inset-y-0 left-0 z-40 w-[58%] bg-[#f1ebe2]/90 paper-texture [clip-path:polygon(0_0,100%_50%,0_100%)]" />
-              <div className="absolute inset-y-0 right-0 z-40 w-[58%] bg-[#f8f4ec]/94 paper-texture [clip-path:polygon(100%_0,0_50%,100%_100%)]" />
-              <div className="absolute inset-x-0 bottom-0 z-40 h-[54%] bg-[#eee6d8]/96 paper-texture [clip-path:polygon(0_100%,50%_0,100%_100%)]" />
-
-              <div className="absolute inset-0 z-41 gold-fold-left opacity-70" />
-              <div className="absolute inset-0 z-41 gold-fold-right opacity-70" />
-
-              <div className="wax-ridge absolute left-1/2 top-1/2 z-50 h-[150px] w-[150px] -translate-x-1/2 -translate-y-1/2 bg-[#9f7c34] shadow-[0_28px_50px_rgba(60,45,22,.42),inset_0_12px_22px_rgba(255,242,190,.35),inset_0_-18px_28px_rgba(84,55,18,.4)]" />
-              <button
-                type="button"
-                onClick={openInvitation}
-                disabled={isOpening}
-                className="seal absolute left-1/2 top-1/2 z-[60] flex h-[124px] w-[124px] items-center justify-center overflow-hidden bg-[#c2a45f] font-serif text-[#fff2d2] shadow-[0_18px_34px_rgba(60,45,22,.38),inset_0_9px_18px_rgba(255,244,204,.5),inset_0_-16px_26px_rgba(95,67,22,.38)] transition disabled:cursor-default"
-                aria-label="Abrir convite"
-              >
-                <span className="wax-monogram relative z-10 flex h-[76px] w-[76px] items-center justify-center rounded-full border border-[#f7df9d]/55 text-3xl tracking-[0.08em] shadow-[inset_0_6px_14px_rgba(75,45,15,.28)]">
-                  FD
-                </span>
-              </button>
-
-              <div className="absolute bottom-[13%] left-1/2 z-50 w-full -translate-x-1/2 px-8 text-center">
-                <p className="text-xs uppercase tracking-[0.42em] text-[#9b7f42]">
-                  Abre o convite
-                </p>
-                <p className="mt-5 text-xl text-[#c2a45f]">♥</p>
-                <p className="mt-4 text-[10px] uppercase tracking-[0.35em] text-[#8a9784]">
-                  toca no selo para abrir
-                </p>
-              </div>
-            </div> */}
             <div
               className="relative h-screen w-full cursor-pointer overflow-hidden"
               onClick={openInvitation}
@@ -621,9 +379,18 @@ export default function WeddingWebsite() {
                 </h1>
 
                 <p className="mt-9 max-w-xl text-lg leading-8 text-[#6c5b4a]">
-                  Depois de tantas memórias, aventuras e sonhos partilhados,
-                  chegou o momento de celebrar o nosso amor com as pessoas que
-                  mais importam.
+                  {guestName ? (
+                    <>
+                      Querida/o {guestName}, queremos muito celebrar este dia
+                      convosco.
+                    </>
+                  ) : (
+                    <>
+                      Depois de tantas memórias, aventuras e sonhos partilhados,
+                      chegou o momento de celebrar o nosso amor com as pessoas
+                      que mais importam.
+                    </>
+                  )}
                 </p>
 
                 <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -688,7 +455,7 @@ export default function WeddingWebsite() {
             className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.12] mix-blend-multiply"
           />
           <div className="absolute inset-x-0 top-0 h-px ornament-line" />
-          <div className="relative mx-auto max-w-6xl reveal-on-scroll">
+          <div className="relative mx-auto max-w-6xl ">
             <div className="relative mx-auto mb-16 max-w-3xl text-center">
               <div className="relative z-10">
                 <p className="mb-4 text-xs uppercase tracking-[0.45em] text-[#c2a45f]">
@@ -938,7 +705,8 @@ export default function WeddingWebsite() {
 
               <form className="space-y-4">
                 <input
-                  className="w-full appearance-none rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
+                  value={guestName ?? ""}
+                  readOnly={!!guestName}
                   placeholder="Nome"
                 />
                 <input
@@ -1072,7 +840,7 @@ function MiniDetail({ label, value }) {
 
 function CountdownBox({ number, label }) {
   return (
-    <div className="group relative overflow-hidden rounded-[2rem] border border-white/15 bg-white/[0.09] p-6 text-center shadow-xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/[0.14]">
+    <div className="group relative overflow-hidden rounded-[2rem] border border-white/15 bg-black/[0.10] p-6 text-center shadow-xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/[0.14]">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d6b98c]/70 to-transparent" />
 
       <div className="countdown-number font-serif text-4xl text-[#f8ead0] drop-shadow-[0_2px_10px_rgba(0,0,0,0.22)] md:text-5xl">
