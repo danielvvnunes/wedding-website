@@ -250,6 +250,12 @@ const guests = {
   "joao-e-ana": "João e Ana",
 };
 
+function CountdownDivider() {
+  return (
+    <span className="hidden h-12 w-px bg-gradient-to-b from-transparent via-[#f0dfb6]/50 to-transparent sm:block" />
+  );
+}
+
 export default function WeddingWebsite() {
   const [isOpen, setIsOpen] = useState(true);
   const [isOpening, setIsOpening] = useState(false);
@@ -582,10 +588,13 @@ export default function WeddingWebsite() {
                 este momento convosco.
               </p>
             </div>
-            <div className="mx-auto mt-14 grid max-w-4xl gap-4 sm:grid-cols-4">
+            <div className="mx-auto mt-14 flex max-w-4xl flex-wrap items-center justify-center gap-x-8 gap-y-8 md:gap-x-14">
               <CountdownBox number={timeLeft.days} label="Dias" />
+              <CountdownDivider />
               <CountdownBox number={timeLeft.hours} label="Horas" />
+              <CountdownDivider />
               <CountdownBox number={timeLeft.minutes} label="Minutos" />
+              <CountdownDivider />
               <CountdownBox number={timeLeft.seconds} label="Segundos" />
             </div>
             <div className="mx-auto mt-14 flex max-w-xl items-center justify-center gap-4 text-center">
@@ -1016,11 +1025,9 @@ function MiniDetail({ label, value }) {
 
 function CountdownBox({ number, label }) {
   return (
-    <div className="group relative overflow-hidden rounded-[2rem] border border-white/15 bg-black/[0.10] p-6 text-center shadow-xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/[0.14]">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d6b98c]/70 to-transparent" />
-
-      <div className="countdown-number font-serif text-4xl text-[#f8ead0] drop-shadow-[0_2px_10px_rgba(0,0,0,0.22)] md:text-5xl">
-        {number}
+    <div className="min-w-[96px] text-center">
+      <div className="countdown-number handwritten text-6xl leading-none text-[#f8ead0] drop-shadow-[0_2px_10px_rgba(0,0,0,0.20)] md:text-7xl">
+        {String(number).padStart(2, "0")}
       </div>
 
       <div className="mt-3 text-[10px] uppercase tracking-[0.35em] text-white/75">
