@@ -363,7 +363,7 @@ export default function WeddingWebsite() {
               />
 
               {!isOpening && (
-                <div className="envelope-hint pointer-events-none absolute bottom-[9vh] left-1/2 z-20 -translate-x-1/2 text-center">
+                <div className="envelope-hint pointer-events-none absolute bottom-[84vh] left-1/2 z-20 -translate-x-1/2 text-center">
                   <div className="rounded-full border border-[#d6b98c]/40 bg-[#f8f4ec]/65 px-5 py-2.5 shadow-md backdrop-blur-sm">
                     <p className="text-[12px] uppercase tracking-[0.32em] text-[#9b7f42]">
                       Toca para abrir
