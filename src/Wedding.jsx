@@ -643,7 +643,7 @@ export default function WeddingWebsite() {
               </p>
             </div>
             <div className="relative mx-auto max-w-3xl px-2 md:px-8">
-              <div className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-[#3b3228]/70 md:block" />
+              <div className="absolute left-3 top-0 h-full w-px bg-[#3b3228]/25 md:left-1/2 md:-translate-x-1/2 md:bg-[#3b3228]/70" />
 
               <div className="space-y-12 md:space-y-16">
                 <Timeline
@@ -1041,52 +1041,85 @@ function Timeline({ time, icon, title, text, side = "left" }) {
   const isLeft = side === "left";
 
   return (
-    <div className="reveal-on-scroll relative grid items-center gap-5 md:grid-cols-[1fr_72px_1fr]">
-      <div
-        className={`text-center md:text-right ${
-          isLeft ? "md:block" : "md:invisible"
-        }`}
-      >
-        <div className="flex items-center justify-center gap-3 md:justify-end">
+    <div className="reveal-on-scroll relative">
+      {/* Mobile */}
+      <div className="relative pl-10 md:hidden">
+        <div className="absolute left-0 top-1 h-full w-px bg-[#3b3228]/35" />
+        <span className="absolute left-[-7px] top-1 h-4 w-4 rounded-full bg-[#3b3228]" />
+
+        <div className="flex items-center gap-3">
           <span className="text-xl text-[#3b3228]">{icon}</span>
           <span className="text-sm uppercase tracking-[0.35em] text-[#9b7f42]">
             {time}
           </span>
         </div>
 
-        <h3 className="handwritten mt-2 text-4xl leading-none text-[#3b3228] md:text-5xl">
+        <h3 className="handwritten mt-2 text-4xl leading-none text-[#3b3228]">
           {title}
         </h3>
 
-        <div className="ml-auto mt-3 hidden h-px w-36 border-t border-dotted border-[#3b3228]/60 md:block" />
+        <div className="mt-3 h-px w-28 border-t border-dotted border-[#3b3228]/50" />
 
         <p className="mt-3 text-sm leading-6 text-[#6c5b4a]">{text}</p>
       </div>
 
-      <div className="relative hidden justify-center md:flex">
-        <span className="relative z-10 h-4 w-4 rounded-full bg-[#3b3228]" />
-      </div>
-
-      <div
-        className={`text-center md:text-left ${
-          !isLeft ? "md:block" : "md:invisible"
-        }`}
-      >
-        <div className="flex items-center justify-center gap-3 md:justify-start">
-          <span className="text-xl text-[#3b3228]">{icon}</span>
-          <span className="text-sm uppercase tracking-[0.35em] text-[#9b7f42]">
-            {time}
-          </span>
+      {/* Desktop */}
+      <div className="hidden items-center gap-5 md:grid md:grid-cols-[1fr_72px_1fr]">
+        <div className={`text-right ${isLeft ? "block" : "invisible"}`}>
+          <TimelineContent
+            align="right"
+            time={time}
+            icon={icon}
+            title={title}
+            text={text}
+          />
         </div>
 
-        <h3 className="handwritten mt-2 text-4xl leading-none text-[#3b3228] md:text-5xl">
-          {title}
-        </h3>
+        <div className="relative flex justify-center">
+          <span className="relative z-10 h-4 w-4 rounded-full bg-[#3b3228]" />
+        </div>
 
-        <div className="mt-3 hidden h-px w-36 border-t border-dotted border-[#3b3228]/60 md:block" />
-
-        <p className="mt-3 text-sm leading-6 text-[#6c5b4a]">{text}</p>
+        <div className={`text-left ${!isLeft ? "block" : "invisible"}`}>
+          <TimelineContent
+            align="left"
+            time={time}
+            icon={icon}
+            title={title}
+            text={text}
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+function TimelineContent({ align, time, icon, title, text }) {
+  const isRight = align === "right";
+
+  return (
+    <>
+      <div
+        className={`flex items-center gap-3 ${
+          isRight ? "justify-end" : "justify-start"
+        }`}
+      >
+        <span className="text-xl text-[#3b3228]">{icon}</span>
+        <span className="text-sm uppercase tracking-[0.35em] text-[#9b7f42]">
+          {time}
+        </span>
+      </div>
+
+      <h3 className="handwritten mt-2 text-5xl leading-none text-[#3b3228]">
+        {title}
+      </h3>
+
+      <div
+        className={`mt-3 h-px w-36 border-t border-dotted border-[#3b3228]/60 ${
+          isRight ? "ml-auto" : ""
+        }`}
+      />
+
+      <p className="mt-3 text-sm leading-6 text-[#6c5b4a]">{text}</p>
+    </>
   );
 }
