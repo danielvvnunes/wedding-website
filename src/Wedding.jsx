@@ -408,6 +408,7 @@ export default function WeddingWebsite() {
   const [isOpen, setIsOpen] = useState(true);
   const [isOpening, setIsOpening] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [hasGuests, setHasGuests] = useState(false);
 
   const weddingDateTime = new Date("2026-09-26T11:30:00");
   const [timeLeft, setTimeLeft] = useState(getTimeRemaining());
@@ -927,26 +928,55 @@ export default function WeddingWebsite() {
               </div>
             </div>
             <div className="bg-white/88 p-8 md:p-12">
-              <p className="mb-8 leading-7 text-[#6c5b4a]">
-                Para nos ajudarem a organizar tudo da melhor forma, agradecemos
-                confirmação até à data indicada no convite final.
-              </p>
+              <div className="mb-8 flex items-center justify-center gap-4 text-center">
+                <span className="h-px flex-1 bg-[#c2a45f]/30" />
+                <p className="font-serif text-lg text-[#9b7f42]">
+                  Confirmar até 15.08.2026
+                </p>
+                <span className="h-px flex-1 bg-[#c2a45f]/30" />
+              </div>
 
               <form className="space-y-4">
                 <input
-                  className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none transition focus:border-[#c2a45f]"
+                  className="w-full appearance-none rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
                   placeholder="Nome"
                 />
                 <input
-                  className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none transition focus:border-[#c2a45f]"
+                  className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
                   placeholder="Email ou contacto"
                 />
-                <select className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none transition focus:border-[#c2a45f]">
+                <select className="appearance-none w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]">
                   <option>Vou estar presente</option>
                   <option>Infelizmente não poderei ir</option>
                 </select>
+
+                <select
+                  onChange={(e) => setHasGuests(e.target.value === "acompanha")}
+                  className="w-full appearance-none rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
+                >
+                  <option value="solo">Vou sozinho/a</option>
+                  <option value="acompanha">Vou levar acompanhantes</option>
+                </select>
+
+                {hasGuests && (
+                  <>
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      placeholder="Número de acompanhantes"
+                      className="w-full appearance-none rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
+                    />
+
+                    <textarea
+                      placeholder="Nome dos acompanhantes"
+                      className="min-h-20 w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
+                    />
+                  </>
+                )}
+
                 <textarea
-                  className="min-h-28 w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none transition focus:border-[#c2a45f]"
+                  className="min-h-28 w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
                   placeholder="Mensagem, alergias ou notas importantes"
                 />
                 <button
@@ -1045,12 +1075,13 @@ function CountdownBox({ number, label }) {
     <div className="group relative overflow-hidden rounded-[2rem] border border-white/15 bg-white/[0.09] p-6 text-center shadow-xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/[0.14]">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d6b98c]/70 to-transparent" />
 
-      <div className="countdown-number font-serif text-4xl text-[#d6b98c] md:text-5xl">
+      <div className="countdown-number font-serif text-4xl text-[#f8ead0] drop-shadow-[0_2px_10px_rgba(0,0,0,0.22)] md:text-5xl">
         {" "}
         {number}
       </div>
 
-      <div className="mt-3 text-[10px] uppercase tracking-[0.35em] text-white/60">
+      <div className="mt-3 text-[10px] uppercase tracking-[0.35em] text-white/75">
+        {" "}
         {label}
       </div>
     </div>
