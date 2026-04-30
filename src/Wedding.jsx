@@ -537,7 +537,7 @@ export default function WeddingWebsite() {
                 </p>
               </div>
             </div>
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid items-stretch gap-6 md:grid-cols-3">
               <div className="reveal-on-scroll reveal-delay-1">
                 <FeatureCard
                   number="01"
@@ -956,20 +956,23 @@ export default function WeddingWebsite() {
 
 function FeatureCard({ number, icon, title, text }) {
   return (
-    <div className="group relative overflow-hidden rounded-[2.4rem] border border-[#cfc6b6] bg-white/60 p-8 shadow-sm backdrop-blur transition hover:-translate-y-1 hover:shadow-xl">
-      <div className="absolute right-6 top-5 font-serif text-6xl text-[#c2a45f]/10">
+    <div className="group relative flex h-full min-h-[300px] flex-col overflow-hidden rounded-[2.4rem] border border-[#cfc6b6] bg-white/60 p-8 shadow-sm backdrop-blur transition hover:-translate-y-1 hover:shadow-xl">
+      <div className="absolute right-6 top-5 text-6xl font-semibold text-[#c2a45f]/10">
         {number}
       </div>
+
       <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-full bg-[#d9dfcf] text-2xl text-[#c2a45f] shadow-inner">
         {icon}
       </div>
-      <h3 className="font-serif text-3xl">{title}</h3>
-      <p className="mt-5 leading-7 text-[#6c5b4a]">{text}</p>
+
+      <h3 className="handwritten text-4xl md:text-5xl">{title}</h3>
+
+      <p className="mt-5 flex-1 leading-7 text-[#6c5b4a]">{text}</p>
+
       <div className="mt-8 h-px w-20 bg-[#c2a45f]/45 transition group-hover:w-32" />
     </div>
   );
 }
-
 function VenueCard({ eyebrow, icon, title, text, cta }) {
   return (
     <div className="group relative overflow-hidden rounded-[2.4rem] border border-white/15 bg-white/[0.11] p-8 pr-24 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/[0.16] md:p-10 md:pr-28">
