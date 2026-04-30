@@ -56,9 +56,9 @@ const customStyles = `
     filter: blur(18px);
     transform: scale(1.03);
     transition:
-      opacity 900ms ease,
-      filter 1200ms ease,
-      transform 1200ms ease;
+      opacity 500ms ease,
+      filter 650ms ease,
+      transform 650ms ease;
   }
 
   .invitation-content-visible {
@@ -204,6 +204,21 @@ const customStyles = `
   .reveal-delay-5 {
     transition-delay: 520ms;
   }
+
+  @keyframes tapHint {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: .82;
+    }
+    50% {
+      transform: translateY(-6px);
+      opacity: 1;
+    }
+  }
+
+  .envelope-hint {
+    animation: tapHint 2.4s ease-in-out infinite;
+  }
 `;
 
 function useRevealOnScroll() {
@@ -291,7 +306,7 @@ export default function WeddingWebsite() {
     setIsOpening(true);
     window.setTimeout(() => {
       setIsOpen(true);
-    }, 1800);
+    }, 900);
   }
 
   useEffect(() => {
@@ -346,6 +361,16 @@ export default function WeddingWebsite() {
       ${isOpening ? "translate-x-full" : "translate-x-0"}
     `}
               />
+
+              {!isOpening && (
+                <div className="envelope-hint pointer-events-none absolute bottom-[9vh] left-1/2 z-20 -translate-x-1/2 text-center">
+                  <div className="rounded-full border border-[#d6b98c]/40 bg-[#f8f4ec]/65 px-5 py-2.5 shadow-md backdrop-blur-sm">
+                    <p className="text-[12px] uppercase tracking-[0.32em] text-[#9b7f42]">
+                      Toca para abrir
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
