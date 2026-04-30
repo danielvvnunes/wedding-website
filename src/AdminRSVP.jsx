@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 export default function AdminRSVP() {
   const [responses, setResponses] = useState([]);
@@ -84,6 +92,13 @@ export default function AdminRSVP() {
     };
   }, [responses]);
 
+  const attendanceData = [
+    { name: "Confirmados", value: stats.confirmed },
+    { name: "Não vão", value: stats.declined },
+  ];
+
+  const COLORS = ["#8a9784", "#c97b7b"];
+
   function handleLogin(e) {
     e.preventDefault();
 
@@ -144,24 +159,98 @@ export default function AdminRSVP() {
           </p>
         </div>
 
-        <div className="mb-8 grid gap-4 md:grid-cols-4">
+        <div className="mb-8 grid gap-4 md:grid-cols-3">
           <StatCard label="Confirmados" value={stats.confirmed} />
           <StatCard label="Não vão" value={stats.declined} />
-          <StatCard label="Acompanhantes" value={stats.guests} />
           <StatCard label="Total pessoas" value={stats.totalPeople} />
         </div>
 
-        <div className="mb-6 flex justify-end">
+        <div className="mb-8 rounded-[2rem] border border-[#cfc6b6] bg-white/60 p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="font-serif text-3xl">Presenças</h2>
+
+            <p className="text-sm text-[#6c5b4a]">
+              Total respostas: {responses.length}
+            </p>
+          </div>
+
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={attendanceData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={5}
+                  label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                >
+                  {attendanceData.map((entry, index) => (
+                    <Cell key={entry.name} fill={COLORS[index]} />
+                  ))}
+                </Pie>
+
+                <Tooltip
+                  formatter={(value, name) => [`${value} pessoas`, name]}
+                />
+
+                <Legend
+                  verticalAlign="bottom"
+                  iconType="circle"
+                  formatter={(value) => (
+                    <span className="text-[#3b3228]">{value}</span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="mt-4 grid gap-4 text-center md:grid-cols-3">
+            <div className="rounded-xl bg-[#8a9784]/10 p-3">
+              <p className="text-xs uppercase tracking-[0.25em] text-[#8a9784]">
+                Confirmados
+              </p>
+              <p className="font-serif text-2xl text-[#5f6f59]">
+                {stats.confirmed}
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-red-100 p-3">
+              <p className="text-xs uppercase tracking-[0.25em] text-red-600">
+                Não vão
+              </p>
+              <p className="font-serif text-2xl text-red-700">
+                {stats.declined}
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-[#c2a45f]/10 p-3">
+              <p className="text-xs uppercase tracking-[0.25em] text-[#9b7f42]">
+                Acompanhantes
+              </p>
+              <p className="font-serif text-2xl text-[#9b7f42]">
+                {stats.guests}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <button
             onClick={fetchResponses}
-            className="rounded-full bg-[#8a9784] px-6 py-3 text-xs uppercase tracking-[0.25em] text-white transition hover:bg-[#c2a45f]"
+            className="rounded-full border border-[#c2a45f]/60 bg-white/60 px-6 py-3 text-xs uppercase tracking-[0.25em] text-[#9b7f42] shadow-sm backdrop-blur transition hover:bg-white"
           >
             Atualizar
           </button>
 
-          <button onClick={exportCSV}>Exportar CSV</button>
+          <button
+            onClick={exportCSV}
+            className="rounded-full bg-[#8a9784] px-6 py-3 text-xs uppercase tracking-[0.25em] text-white shadow-lg transition hover:bg-[#c2a45f]"
+          >
+            Exportar CSV
+          </button>
         </div>
-
         {loading ? (
           <p className="text-center text-[#6c5b4a]">A carregar respostas...</p>
         ) : (
@@ -221,10 +310,10 @@ function RSVPCard({ response }) {
       {response.attending && (
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           <Info label="Acompanhantes" value={response.guests_count || "0"} />
-          <Info
-            label="Nomes"
-            value={response.guests_names || "Sem acompanhantes"}
-          />
+
+          {Number(response.guests_count) > 0 && (
+            <Info label="Nomes" value={response.guests_names || ""} />
+          )}
         </div>
       )}
 
