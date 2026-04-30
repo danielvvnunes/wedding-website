@@ -4,6 +4,7 @@ import casalLineImg from "./assets/casal-line.png";
 import EnvelopeLeft from "./assets/envelope-left.png";
 import EnvelopeRight from "./assets/envelope-right.png";
 import { useParams } from "react-router-dom";
+import { supabase } from "./lib/supabase";
 
 const customStyles = `
   .paper-texture {
@@ -255,12 +256,40 @@ export default function WeddingWebsite() {
   const [isMobile, setIsMobile] = useState(false);
   const [hasGuests, setHasGuests] = useState(false);
 
+  const [submitStatus, setSubmitStatus] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const weddingDateTime = new Date("2026-09-26T11:30:00");
   const [timeLeft, setTimeLeft] = useState(getTimeRemaining());
 
   const { guestSlug } = useParams();
 
   const guestName = guestSlug ? guests[guestSlug] : null;
+
+  const [name, setName] = useState(guestName ?? "");
+  const [contact, setContact] = useState("");
+  const [attending, setAttending] = useState("yes");
+  const [guestsCount, setGuestsCount] = useState("");
+  const [guestsNames, setGuestsNames] = useState("");
+  const [notes, setNotes] = useState("");
+
+  async function submitRSVP(data) {
+    const { error } = await supabase.from("rsvp").insert([data]);
+
+    if (error) {
+      console.error(error);
+      return false;
+    }
+
+    return true;
+  }
+
+  useEffect(() => {
+    if (guestName) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setName(guestName);
+    }
+  }, [guestName]);
 
   function getTimeRemaining() {
     const total = weddingDateTime - new Date();
@@ -720,7 +749,6 @@ export default function WeddingWebsite() {
         <div className="ornament-divider" />
         <section id="rsvp" className="px-6 py-28">
           <div className="luxury-card paper-texture reveal-on-scroll mx-auto max-w-6xl overflow-hidden rounded-[3.2rem] border border-[#cfc6b6] shadow-2xl md:grid md:grid-cols-[0.92fr_1.08fr]">
-            {" "}
             <div className="relative flex min-h-[460px] items-center justify-center overflow-hidden bg-[#8a9784] p-10 text-center text-white">
               <div className="absolute inset-0 floral-pattern opacity-20" />
               <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
@@ -746,55 +774,160 @@ export default function WeddingWebsite() {
                 <span className="h-px flex-1 bg-[#c2a45f]/30" />
               </div>
 
-              <form className="space-y-4">
+              <form
+                className="space-y-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+
+                  if (!contact) {
+                    setSubmitStatus("missing-contact");
+                    return;
+                  }
+
+                  setIsSubmitting(true);
+                  setSubmitStatus(null);
+
+                  const success = await submitRSVP({
+                    guest_slug: guestSlug,
+                    guest_name: name,
+                    contact,
+                    attending: attending === "yes",
+                    has_guests: hasGuests,
+                    guests_count: hasGuests ? guestsCount : null,
+                    guests_names: hasGuests ? guestsNames : null,
+                    notes,
+                  });
+
+                  setIsSubmitting(false);
+
+                  if (success) {
+                    setSubmitStatus(
+                      attending === "yes" ? "attending" : "not-attending",
+                    );
+                  } else {
+                    setSubmitStatus("error");
+                  }
+                }}
+              >
+                {/* Nome */}
                 <input
-                  value={guestName ?? ""}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   readOnly={!!guestName}
                   placeholder="Nome"
+                  className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none focus:border-[#c2a45f]"
                 />
+
+                {/* Contacto */}
                 <input
-                  className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
+                  value={contact}
+                  onChange={(e) => setContact(e.target.value)}
+                  className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none focus:border-[#c2a45f]"
                   placeholder="Email ou contacto"
+                  required
                 />
-                <select className="appearance-none w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]">
-                  <option>Vou estar presente</option>
-                  <option>Infelizmente não poderei ir</option>
-                </select>
 
+                {/* Presença */}
                 <select
-                  onChange={(e) => setHasGuests(e.target.value === "acompanha")}
-                  className="w-full appearance-none rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
+                  value={attending}
+                  onChange={(e) => setAttending(e.target.value)}
+                  className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none focus:border-[#c2a45f]"
                 >
-                  <option value="solo">Vou sozinho/a</option>
-                  <option value="acompanha">Vou levar acompanhantes</option>
+                  <option value="yes">Vou estar presente</option>
+                  <option value="no">Infelizmente não poderei ir</option>
                 </select>
 
-                {hasGuests && (
+                {/* Acompanhantes */}
+                {attending === "yes" && (
                   <>
-                    <input
-                      type="number"
-                      min="1"
-                      max="5"
-                      placeholder="Número de acompanhantes"
-                      className="w-full appearance-none rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
-                    />
+                    <select
+                      onChange={(e) =>
+                        setHasGuests(e.target.value === "acompanha")
+                      }
+                      className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none focus:border-[#c2a45f]"
+                    >
+                      <option value="solo">Vou sozinho/a</option>
+                      <option value="acompanha">Vou levar acompanhantes</option>
+                    </select>
 
-                    <textarea
-                      placeholder="Nome dos acompanhantes"
-                      className="min-h-20 w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
-                    />
+                    {hasGuests && (
+                      <>
+                        <input
+                          type="number"
+                          min="1"
+                          max="5"
+                          value={guestsCount}
+                          onChange={(e) => setGuestsCount(e.target.value)}
+                          placeholder="Número de acompanhantes"
+                          className="w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none focus:border-[#c2a45f]"
+                        />
+
+                        <textarea
+                          value={guestsNames}
+                          onChange={(e) => setGuestsNames(e.target.value)}
+                          placeholder="Nome dos acompanhantes"
+                          className="min-h-20 w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none focus:border-[#c2a45f]"
+                        />
+                      </>
+                    )}
                   </>
                 )}
 
+                {/* Notas */}
                 <textarea
-                  className="min-h-28 w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 text-base outline-none transition focus:border-[#c2a45f]"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="min-h-28 w-full rounded-2xl border border-[#cfc6b6] bg-[#f8f4ec]/50 px-5 py-4 outline-none focus:border-[#c2a45f]"
                   placeholder="Mensagem, alergias ou notas importantes"
                 />
+
+                {submitStatus && (
+                  <div className="rounded-[1.6rem] border border-[#cfc6b6] bg-[#f8f4ec]/70 px-5 py-4 text-center shadow-sm">
+                    {submitStatus === "attending" && (
+                      <>
+                        <p className="font-serif text-2xl text-[#8a9784]">
+                          Que alegria! 💛
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-[#6c5b4a]">
+                          A vossa presença ficou confirmada. Estamos muito
+                          felizes por partilhar este dia convosco.
+                        </p>
+                      </>
+                    )}
+
+                    {submitStatus === "not-attending" && (
+                      <>
+                        <p className="font-serif text-2xl text-[#9b7f42]">
+                          Vamos sentir a vossa falta 🤍
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-[#6c5b4a]">
+                          Obrigado por nos avisarem. Mesmo não estando
+                          presentes, estarão connosco neste dia especial.
+                        </p>
+                      </>
+                    )}
+
+                    {submitStatus === "missing-contact" && (
+                      <p className="text-sm text-[#9b4a3f]">
+                        Por favor indica um contacto antes de enviar.
+                      </p>
+                    )}
+
+                    {submitStatus === "error" && (
+                      <p className="text-sm text-[#9b4a3f]">
+                        Não foi possível enviar a confirmação. Tenta novamente.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Botão */}
                 <button
-                  type="button"
-                  className="w-full rounded-full bg-[#8a9784] px-8 py-4 text-sm uppercase tracking-[0.25em] text-white shadow-lg transition hover:bg-[#c2a45f]"
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full rounded-full bg-[#8a9784] px-8 py-4 text-sm uppercase tracking-[0.25em] text-white shadow-lg transition hover:bg-[#c2a45f] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Enviar confirmação
+                  {isSubmitting ? "A enviar..." : "Enviar confirmação"}
                 </button>
               </form>
             </div>
@@ -887,12 +1020,10 @@ function CountdownBox({ number, label }) {
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d6b98c]/70 to-transparent" />
 
       <div className="countdown-number font-serif text-4xl text-[#f8ead0] drop-shadow-[0_2px_10px_rgba(0,0,0,0.22)] md:text-5xl">
-        {" "}
         {number}
       </div>
 
       <div className="mt-3 text-[10px] uppercase tracking-[0.35em] text-white/75">
-        {" "}
         {label}
       </div>
     </div>
