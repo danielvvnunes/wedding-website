@@ -1,4 +1,8 @@
 import { useState } from "react";
+import igrejaImg from "./assets/igreja.png";
+import casalLineImg from "./assets/casal-line.png";
+import EnvelopeLeft from "./assets/envelope-left.png";
+import EnvelopeRight from "./assets/envelope-right.png";
 
 const customStyles = `
   @keyframes invitationFadeOut {
@@ -172,6 +176,26 @@ const customStyles = `
       radial-gradient(ellipse at 40% 52%, rgba(138,151,132,.18) 0 7px, transparent 8px),
       linear-gradient(105deg, transparent 49%, rgba(138,151,132,.34) 50%, transparent 51%);
   }
+
+  .section-fade {
+    position: relative;
+  }
+
+  .section-fade::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 120px;
+    z-index: 5;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--fade-to)
+    );
+  }
 `;
 
 export default function WeddingWebsite() {
@@ -192,15 +216,16 @@ export default function WeddingWebsite() {
       <style>{customStyles}</style>
       {!isOpen && (
         <section
-          className={`fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#d9dfcf] px-6 ${
-            isOpening ? "invitation-opening" : ""
-          }`}
+          // className={`fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#d9dfcf] px-6 ${
+          //   isOpening ? "invitation-opening" : ""
+          // }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#d9dfcf] `}
         >
           <div className="absolute left-[-8rem] top-[-8rem] h-80 w-80 rounded-full bg-[#f1ebe2]/60 blur-3xl" />
           <div className="absolute bottom-[-10rem] right-[-8rem] h-96 w-96 rounded-full bg-[#8a9784]/30 blur-3xl" />
 
           <div className="relative flex h-screen w-full items-center justify-center perspective-[1600px]">
-            <div className="relative h-[92vh] max-h-[880px] w-[92vw] max-w-[430px] overflow-hidden rounded-[2.2rem] border border-[#cfc6b6] bg-[#f1ebe2] shadow-2xl paper-texture">
+            {/* <div className="relative h-[92vh] max-h-[880px] w-[92vw] max-w-[430px] overflow-hidden rounded-[2.2rem] border border-[#cfc6b6] bg-[#f1ebe2] shadow-2xl paper-texture">
               <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-[#f1ebe2] to-[#e8e4de]" />
               <div className="botanical-corner bottom-[-34px] left-[-42px] z-10 rotate-[-18deg]" />
               <div className="botanical-corner bottom-[-10px] right-[-58px] z-10 rotate-[18deg] scale-x-[-1]" />
@@ -267,6 +292,28 @@ export default function WeddingWebsite() {
                   toca no selo para abrir
                 </p>
               </div>
+            </div> */}
+            <div
+              className="relative h-screen w-full cursor-pointer overflow-hidden"
+              onClick={openInvitation}
+            >
+              {/* LEFT */}
+              <img
+                src={EnvelopeLeft}
+                alt=""
+                className={`absolute left-0 top-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(.22,1,.36,1)]
+      ${isOpening ? "-translate-x-full" : "translate-x-0"}
+    `}
+              />
+
+              {/* RIGHT */}
+              <img
+                src={EnvelopeRight}
+                alt=""
+                className={`absolute left-0 top-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(.22,1,.36,1)]
+      ${isOpening ? "translate-x-full" : "translate-x-0"}
+    `}
+              />
             </div>
           </div>
         </section>
@@ -280,7 +327,7 @@ export default function WeddingWebsite() {
         <div className="leaf-stem absolute bottom-16 right-10 h-72 w-40 rotate-[155deg] opacity-35" />
 
         <div className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] max-w-7xl flex-col justify-center">
-          <div className="grid items-center gap-12 lg:grid-cols-[0.92fr_1.08fr]">
+          <div className="grid items-center gap-20 lg:grid-cols-[0.92fr_1.08fr]">
             <div className="relative order-2 lg:order-1">
               <div className="mb-8 flex items-center gap-4">
                 <span className="h-px w-16 bg-[#c2a45f]" />
@@ -331,8 +378,12 @@ export default function WeddingWebsite() {
                     Save the date
                   </p>
                   <div className="mx-auto my-8 h-px w-32 ornament-line" />
-                  <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-[#c2a45f]/70 bg-white/55 font-serif text-5xl text-[#c2a45f] shadow-inner">
-                    FD
+                  <div className="relative mx-auto my-8 flex justify-center">
+                    <img
+                      src={casalLineImg}
+                      alt="Desenho de linha de Francisca e Daniel"
+                      className="w-[200px] max-w-full opacity-80 mix-blend-multiply"
+                    />
                   </div>
                   <h2 className="mt-8 font-serif text-5xl text-[#3b3228] md:text-6xl">
                     26.09.2026
@@ -354,29 +405,30 @@ export default function WeddingWebsite() {
       </section>
 
       <section className="relative overflow-hidden px-6 py-24">
-        {/* Illustration placeholder (casal desenho) */}
-        <div className="pointer-events-none absolute left-8 top-12 hidden lg:block opacity-40">
-          <IllustrationSlot label="Desenho do casal" />
-        </div>
-
-        {/* Illustration placeholder (quinta desenho) */}
-        <div className="pointer-events-none absolute right-10 bottom-10 hidden lg:block opacity-35">
-          <IllustrationSlot label="Desenho da quinta" />
-        </div>
         <div className="absolute inset-0 bg-[#f8f4ec]" />
+        <img
+          src={igrejaImg}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.12] mix-blend-multiply"
+        />
         <div className="absolute inset-x-0 top-0 h-px ornament-line" />
         <div className="relative mx-auto max-w-6xl">
-          <div className="mx-auto mb-16 max-w-3xl text-center">
-            <p className="mb-4 text-xs uppercase tracking-[0.45em] text-[#c2a45f]">
-              O nosso dia
-            </p>
-            <h2 className="font-serif text-5xl leading-tight md:text-7xl">
-              Uma celebração feita de detalhes.
-            </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[#6c5b4a]">
-              Queremos que este seja um dia leve, bonito e cheio de momentos
-              para guardar. Aqui ficam os principais detalhes da celebração.
-            </p>
+          <div className="relative mx-auto mb-16 max-w-3xl text-center">
+            <div className="relative z-10">
+              <p className="mb-4 text-xs uppercase tracking-[0.45em] text-[#c2a45f]">
+                O nosso dia
+              </p>
+
+              <h2 className="font-serif text-5xl leading-tight md:text-7xl">
+                Uma celebração feita de detalhes.
+              </h2>
+
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[#6c5b4a]">
+                Queremos que este seja um dia leve, bonito e cheio de momentos
+                para guardar. Aqui ficam os principais detalhes da celebração.
+              </p>
+            </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
@@ -447,7 +499,6 @@ export default function WeddingWebsite() {
           </div>
 
           <div className="relative mx-auto max-w-3xl rounded-[2.5rem] border border-[#cfc6b6] bg-white/45 p-5 shadow-xl backdrop-blur md:p-8">
-            <div className="absolute left-10 top-12 hidden h-[calc(100%-6rem)] w-px bg-[#c2a45f]/35 sm:block" />
             <div className="space-y-4">
               <Timeline time="11:00" title="Chegada dos convidados" />
               <Timeline time="11:30" title="Cerimónia" />
@@ -586,7 +637,7 @@ function MiniDetail({ label, value }) {
       </span>
       <span
         className={`font-serif leading-tight text-[#3b3228] ${
-          isLocation ? "text-2xl md:text-xl" : "text-xl md:text-2xl"
+          isLocation ? "text-xl md:text-xl" : "text-xl md:text-2xl"
         }`}
       >
         {value}
@@ -602,16 +653,6 @@ function CountdownBox({ number, label }) {
       <div className="mt-2 text-xs uppercase tracking-[0.3em] text-white/60">
         {label}
       </div>
-    </div>
-  );
-}
-
-function IllustrationSlot({ label }) {
-  return (
-    <div className="flex h-[220px] w-[180px] items-center justify-center rounded-[2rem] border border-[#cfc6b6] bg-white/40 backdrop-blur text-center">
-      <span className="px-6 text-xs uppercase tracking-[0.35em] text-[#8a9784]">
-        {label}
-      </span>
     </div>
   );
 }
