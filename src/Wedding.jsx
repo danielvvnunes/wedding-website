@@ -20,6 +20,26 @@ const customStyles = `
   }
 }
 
+  @keyframes goldShimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .gold-text {
+    background: linear-gradient(105deg, #8f7036, #c2a45f, #f7df9d, #c2a45f, #8f7036);
+    background-size: 240% 240%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: goldShimmer 5.5s ease-in-out infinite;
+  }
+
+  .gold-surface {
+    background: linear-gradient(135deg, rgba(143,112,54,.95), rgba(194,164,95,.95), rgba(247,223,157,.88), rgba(194,164,95,.95));
+    background-size: 220% 220%;
+    animation: goldShimmer 6s ease-in-out infinite;
+  }
+
 .gold-timeline-line {
   background: linear-gradient(
     to bottom,
@@ -1043,7 +1063,7 @@ export default function WeddingWebsite() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-full bg-[#8a9784] px-8 py-4 text-sm uppercase tracking-[0.25em] text-white shadow-lg transition hover:bg-[#c2a45f] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="gold-surface w-full rounded-full px-8 py-4 text-sm uppercase tracking-[0.25em] text-white shadow-lg transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? "A enviar..." : "Enviar confirmação"}
                 </button>
