@@ -7,6 +7,64 @@ import { useParams } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 
 const customStyles = `
+@keyframes goldLineGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 4px rgba(194,164,95,.25),
+      0 0 10px rgba(194,164,95,.10);
+  }
+  50% {
+    box-shadow:
+      0 0 8px rgba(247,223,157,.55),
+      0 0 18px rgba(194,164,95,.28);
+  }
+}
+
+.gold-timeline-line {
+  background: linear-gradient(
+    to bottom,
+    rgba(155,127,66,.35),
+    rgba(194,164,95,.95),
+    rgba(247,223,157,.85),
+    rgba(194,164,95,.95),
+    rgba(155,127,66,.35)
+  );
+  animation: goldLineGlow 4.8s ease-in-out infinite;
+}
+
+@keyframes goldShine {
+  0% {
+    background-position: 0% 50%;
+    filter: drop-shadow(0 0 2px rgba(194,164,95,.18));
+  }
+  50% {
+    background-position: 100% 50%;
+    filter:
+      drop-shadow(0 0 7px rgba(255,226,150,.42))
+      drop-shadow(0 0 16px rgba(194,164,95,.22));
+  }
+  100% {
+    background-position: 0% 50%;
+    filter: drop-shadow(0 0 2px rgba(194,164,95,.18));
+  }
+}
+
+.gold-shine {
+  background: linear-gradient(
+    105deg,
+    #9b7f42 0%,
+    #c2a45f 28%,
+    #f7df9d 48%,
+    #c2a45f 65%,
+    #8f7036 100%
+  );
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: goldShine 4.8s ease-in-out infinite;
+}
+
   .paper-texture {
     background-image:
       radial-gradient(circle at 18% 20%, rgba(255,255,255,.72) 0 1px, transparent 1px),
@@ -256,6 +314,42 @@ function CountdownDivider() {
   );
 }
 
+function SectionNav() {
+  return (
+    <header className="relative z-40 border-y border-[#cfc6b6]/70 bg-[#f8f4ec]/85 px-4 py-3 backdrop-blur-md">
+      <nav className="mx-auto grid max-w-6xl grid-cols-2 gap-2 text-center text-[10px] uppercase tracking-[0.16em] text-[#6c5b4a] sm:flex sm:items-center sm:justify-center sm:gap-3 sm:text-[11px] sm:tracking-[0.24em]">
+        <a
+          href="#detalhes"
+          className="rounded-full px-3 py-2 transition hover:bg-[#d9dfcf] hover:text-[#3b3228]"
+        >
+          Detalhes
+        </a>
+
+        <a
+          href="#programa"
+          className="rounded-full px-3 py-2 transition hover:bg-[#d9dfcf] hover:text-[#3b3228]"
+        >
+          Programa
+        </a>
+
+        <a
+          href="#locais"
+          className="rounded-full px-3 py-2 transition hover:bg-[#d9dfcf] hover:text-[#3b3228]"
+        >
+          Locais
+        </a>
+
+        <a
+          href="#rsvp"
+          className="rounded-full bg-[#8a9784] px-3 py-2 text-white transition hover:bg-[#c2a45f]"
+        >
+          Confirmações
+        </a>
+      </nav>
+    </header>
+  );
+}
+
 export default function WeddingWebsite() {
   const [isOpen, setIsOpen] = useState(true);
   const [isOpening, setIsOpening] = useState(false);
@@ -420,30 +514,30 @@ export default function WeddingWebsite() {
         <div className="ornament-divider" />
         <section className="relative min-h-screen overflow-hidden px-6 py-16 md:py-20">
           <div className="absolute inset-0 bg-[#e8e4de]" />
-          <div className="absolute inset-0 subtle-grid opacity-70" />
+          <div className="absolute inset-0 subtle-grid opacity-60" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,.95),transparent_28%),radial-gradient(circle_at_85%_75%,rgba(217,223,207,.9),transparent_30%)]" />
-          <div className="leaf-stem absolute left-8 top-24 h-72 w-40 -rotate-12 opacity-40" />
-          <div className="leaf-stem absolute bottom-16 right-10 h-72 w-40 rotate-[155deg] opacity-35" />
+          <div className="leaf-stem absolute left-8 top-24 h-72 w-40 -rotate-12 opacity-35" />
+          <div className="leaf-stem absolute bottom-16 right-10 h-72 w-40 rotate-[155deg] opacity-30" />
 
           <div className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] max-w-7xl flex-col justify-center">
-            <div className="grid items-center gap-20 lg:grid-cols-[0.92fr_1.08fr]">
-              <div className="relative order-2 lg:order-1">
-                <div className="mb-8 flex items-center gap-4">
-                  <span className="h-px w-16 bg-[#c2a45f]" />
-                  <p className="text-xs uppercase tracking-[0.5em] text-[#9b7f42]">
+            <div className="grid items-center gap-14 lg:grid-cols-[1fr_0.9fr]">
+              <div className="relative text-center lg:text-left">
+                <div className="mb-8 flex items-center justify-center gap-4 lg:justify-start">
+                  <span className="h-px w-14 bg-[#c2a45f]" />
+                  <p className="gold-shine text-xs uppercase tracking-[0.42em] text-[#9b7f42]">
                     Wedding celebration
                   </p>
+                  <span className="h-px w-14 bg-[#c2a45f] lg:hidden" />
                 </div>
 
-                <h1 className="handwritten text-7xl leading-none text-[#3b3228] md:text-9xl">
+                <h1 className="handwritten text-7xl leading-none text-[#3b3228] md:text-9xl lg:text-[10rem]">
                   <span className="script-shadow block">Francisca</span>
-
-                  <span className="gold-glow mt-4 block tracking-[-0.05em]">
-                    & Daniel
-                  </span>
+                  <span className="gold-glow mt-3 block">& Daniel</span>
                 </h1>
 
-                <p className="mt-9 max-w-xl text-lg leading-8 text-[#6c5b4a]">
+                <div className="mx-auto mt-8 h-px w-40 ornament-line lg:mx-0" />
+
+                <p className="mx-auto mt-8 max-w-xl text-lg leading-8 text-[#6c5b4a] lg:mx-0">
                   {guestName ? (
                     <>
                       Querida/o {guestName}, queremos muito celebrar este dia
@@ -458,51 +552,62 @@ export default function WeddingWebsite() {
                   )}
                 </p>
 
-                <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-                  <a
-                    href="#programa"
-                    className="rounded-full bg-[#8a9784] px-8 py-4 text-center text-xs uppercase tracking-[0.28em] text-white shadow-lg transition hover:bg-[#c2a45f]"
-                  >
-                    Ver programa
-                  </a>
-                  <a
-                    href="#rsvp"
-                    className="rounded-full border border-[#c2a45f]/70 bg-white/45 px-8 py-4 text-center text-xs uppercase tracking-[0.28em] text-[#9b7f42] backdrop-blur transition hover:bg-white"
-                  >
-                    Confirmar presença
-                  </a>
+                <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-[#6c5b4a] lg:justify-start">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.28em] text-[#9b7f42]">
+                      Data
+                    </p>
+                    <p className="mt-1 text-lg font-medium text-[#3b3228]">
+                      26.09.2026
+                    </p>
+                  </div>
+
+                  <span className="hidden h-10 w-px bg-[#c2a45f]/40 sm:block" />
+
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.28em] text-[#9b7f42]">
+                      Cerimónia
+                    </p>
+                    <p className="mt-1 text-lg font-medium text-[#3b3228]">
+                      11h30
+                    </p>
+                  </div>
+
+                  <span className="hidden h-10 w-px bg-[#c2a45f]/40 sm:block" />
+
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.28em] text-[#9b7f42]">
+                      Local
+                    </p>
+                    <p className="mt-1 text-lg font-medium text-[#3b3228]">
+                      Santa Iria da Azóia
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="float-card relative order-1 mx-auto w-full max-w-[520px] lg:order-2">
-                <div className="absolute -inset-6 rounded-[3.5rem] bg-white/45 blur-2xl" />
-                <div className="soft-up luxury-card paper-texture relative overflow-hidden rounded-[3rem] border border-[#cfc6b6] p-7 shadow-2xl md:p-9">
-                  <div className="absolute left-0 top-0 h-32 w-32 rounded-br-full bg-[#d9dfcf]/55" />
-                  <div className="absolute bottom-0 right-0 h-36 w-36 rounded-tl-full bg-[#c2a45f]/10" />
-                  <div className="relative rounded-[2.3rem] border border-[#c2a45f]/35 bg-[#f8f4ec]/75 px-7 py-10 text-center backdrop-blur">
-                    <p className="text-[11px] uppercase tracking-[0.52em] text-[#8a9784]">
+              <div className="relative mx-auto flex w-full max-w-[520px] justify-center">
+                <div className="absolute inset-0 rounded-full bg-white/40 blur-3xl" />
+
+                <div className="relative text-center">
+                  <img
+                    src={casalLineImg}
+                    alt="Desenho de linha de Francisca e Daniel"
+                    className="mx-auto w-[260px] max-w-full opacity-80 mix-blend-multiply md:w-[340px]"
+                  />
+
+                  <div className="mx-auto mt-8 max-w-xs">
+                    <p className="text-xs uppercase tracking-[0.42em] text-[#8a9784]">
                       Save the date
                     </p>
-                    <div className="mx-auto my-8 h-px w-32 ornament-line" />
-                    <div className="relative mx-auto my-8 flex justify-center">
-                      <img
-                        src={casalLineImg}
-                        alt="Desenho de linha de Francisca e Daniel"
-                        className="w-[200px] max-w-full opacity-80 mix-blend-multiply"
-                      />
-                    </div>
-                    <h2 className="mt-8 font-serif text-5xl text-[#3b3228] md:text-6xl">
-                      26.09.2026
-                    </h2>
-                    <p className="mt-4 text-sm uppercase tracking-[0.35em] text-[#9b7f42]">
-                      sábado
+
+                    <p className="gold-shine not-even:handwritten mt-3 text-5xl leading-none text-[#c2a45f] md:text-6xl">
+                      26 de setembro
                     </p>
 
-                    <div className="mt-9 grid gap-3 text-left">
-                      <MiniDetail label="Cerimónia" value="11h30" />
-                      <MiniDetail label="Cocktail" value="14h00" />
-                      <MiniDetail label="Local" value="Santa Iria da Azóia" />
-                    </div>
+                    <p className="mt-3 text-sm uppercase tracking-[0.35em] text-[#9b7f42]">
+                      sábado · 2026
+                    </p>
                   </div>
                 </div>
               </div>
@@ -510,8 +615,10 @@ export default function WeddingWebsite() {
           </div>
         </section>
 
+        <SectionNav />
+
         <div className="ornament-divider" />
-        <section className="relative overflow-hidden px-6 py-24">
+        <section id="detalhes" className="relative overflow-hidden px-6 py-24">
           <div className="absolute inset-0 bg-[#f8f4ec]" />
           <img
             src={igrejaImg}
@@ -567,7 +674,10 @@ export default function WeddingWebsite() {
         </section>
 
         <div className="ornament-divider" />
-        <section className="relative isolate overflow-hidden bg-[#8a9784] px-6 py-28 text-white">
+        <section
+          id="countdown"
+          className="relative isolate overflow-hidden bg-[#8a9784] px-6 py-28 text-white"
+        >
           <div className="absolute inset-0 floral-pattern opacity-[0.1]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_25%,rgba(255,255,255,.18),transparent_30%),radial-gradient(circle_at_85%_75%,rgba(194,164,95,.25),transparent_32%)]" />
 
@@ -643,8 +753,7 @@ export default function WeddingWebsite() {
               </p>
             </div>
             <div className="relative mx-auto max-w-3xl px-2 md:px-8">
-              <div className="absolute left-3 top-0 h-full w-px bg-[#3b3228]/25 md:left-1/2 md:-translate-x-1/2 md:bg-[#3b3228]/70" />
-
+              <div className="gold-timeline-line absolute left-3 top-0 h-full w-px md:left-1/2 md:-translate-x-1/2" />
               <div className="space-y-12 md:space-y-16">
                 <Timeline
                   side="left"
@@ -691,7 +800,10 @@ export default function WeddingWebsite() {
         </section>
 
         <div className="ornament-divider" />
-        <section className="relative isolate overflow-hidden bg-[#8a9784] px-6 py-28 text-white">
+        <section
+          id="locais"
+          className="relative isolate overflow-hidden bg-[#8a9784] px-6 py-28 text-white"
+        >
           <div className="absolute inset-0 floral-pattern opacity-[0.1]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_25%,rgba(255,255,255,.18),transparent_30%),radial-gradient(circle_at_85%_75%,rgba(194,164,95,.25),transparent_32%)]" />
 
@@ -940,13 +1052,14 @@ export default function WeddingWebsite() {
           </div>
         </section>
 
-        <footer className="border-t border-[#cfc6b6] px-6 py-14 text-center">
-          <p className="font-serif text-3xl text-[#c2a45f]">F · D</p>
+        <footer className="border-t border-[#cfc6b6] px-6 pb-28 pt-14 text-center md:pb-14">
+          {" "}
+          <p className="glow-shine font-serif text-3xl text-[#c2a45f]">F · D</p>
           <p className="mt-3 text-sm text-[#6c5b4a]">
             Francisca & Daniel · {weddingDate}
           </p>
           <p className="mt-4 inline-flex items-center gap-2 text-sm text-[#6c5b4a]">
-            ✉ contacto@exemplo.pt
+            ✉ casamento.franciscadaniel@gmail.com
           </p>
         </footer>
       </div>
@@ -998,31 +1111,6 @@ function VenueCard({ eyebrow, icon, title, text, cta }) {
   );
 }
 
-function MiniDetail({ label, value }) {
-  const isLocation = true;
-
-  return (
-    <div
-      className={`rounded-2xl border border-[#cfc6b6] bg-white/55 px-5 py-4 ${
-        isLocation
-          ? "flex flex-col items-center gap-2 text-center"
-          : "flex items-center justify-between gap-4"
-      }`}
-    >
-      <span className="shrink-0 text-xs uppercase tracking-[0.28em] text-[#8a9784]">
-        {label}
-      </span>
-      <span
-        className={`font-serif leading-tight text-[#3b3228] ${
-          isLocation ? "text-xl md:text-xl" : "text-xl md:text-2xl"
-        }`}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
 function CountdownBox({ number, label }) {
   return (
     <div className="min-w-[96px] text-center">
@@ -1045,8 +1133,7 @@ function Timeline({ time, icon, title, text, side = "left" }) {
       {/* Mobile */}
       <div className="relative pl-10 md:hidden">
         <div className="absolute left-0 top-1 h-full w-px bg-[#3b3228]/35" />
-        <span className="absolute left-[-7px] top-1 h-4 w-4 rounded-full bg-[#3b3228]" />
-
+        <span className="absolute left-[-7px] top-1 h-4 w-4 rounded-full bg-[#c2a45f] shadow-[0_0_12px_rgba(194,164,95,.55)]" />
         <div className="flex items-center gap-3">
           <span className="text-xl text-[#3b3228]">{icon}</span>
           <span className="text-sm uppercase tracking-[0.35em] text-[#9b7f42]">
@@ -1076,7 +1163,7 @@ function Timeline({ time, icon, title, text, side = "left" }) {
         </div>
 
         <div className="relative flex justify-center">
-          <span className="relative z-10 h-4 w-4 rounded-full bg-[#3b3228]" />
+          <span className="relative z-10 h-4 w-4 rounded-full bg-[#c2a45f] shadow-[0_0_12px_rgba(194,164,95,.55)]" />{" "}
         </div>
 
         <div className={`text-left ${!isLeft ? "block" : "invisible"}`}>
