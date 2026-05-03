@@ -562,12 +562,14 @@ export default function WeddingWebsiteV3() {
       >
         <section className="section-hero flex min-h-screen flex-col justify-center px-6 py-24 text-center">
           <div className="mx-auto max-w-6xl">
-            <div className="mb-8 flex items-center justify-center gap-4 lg:justify-start">
-              <span className="h-px w-14 bg-[#c2a45f]" />
-              <p className="gold-accent text-xs uppercase tracking-[0.42em] text-[#9b7f42]">
+            <div className="mb-8 flex items-center justify-center gap-3 lg:justify-start">
+              <span className="h-px w-8 shrink-0 bg-[#c2a45f] sm:w-14" />
+
+              <p className="gold-accent whitespace-nowrap text-[10px] uppercase tracking-[0.26em] text-[#9b7f42] sm:text-xs sm:tracking-[0.42em]">
                 Wedding invitation
               </p>
-              <span className="h-px w-14 bg-[#c2a45f] lg:hidden" />
+
+              <span className="h-px w-8 shrink-0 bg-[#c2a45f] sm:w-14 lg:hidden" />
             </div>
 
             <h1 className="text-[4.8rem] font-extrabold  leading-[0.82] tracking-[0.02em] text-[#b7c4b0] md:text-[9rem] lg:text-[11rem]">
