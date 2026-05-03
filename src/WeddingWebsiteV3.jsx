@@ -535,13 +535,6 @@ function SectionNav() {
             Programa
           </a>
 
-          <a
-            href="#locais"
-            className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
-          >
-            Locais
-          </a>
-
           <Link
             to="/convemsaber"
             className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
@@ -1277,7 +1270,7 @@ export default function WeddingWebsiteV3() {
           </div>
         </section>
 
-        <section className="text-center py-20">
+        {/* <section className="text-center py-20">
           <p className="gold-accent text-xs uppercase tracking-[0.4em]">
             Memórias
           </p>
@@ -1300,7 +1293,7 @@ export default function WeddingWebsiteV3() {
           >
             Ir para galeria
           </Link>
-        </section>
+        </section> */}
 
         <footer className="section-cream px-6 py-16 text-center text-[#b7c4b0]">
           <div className="soft-line mx-auto mb-12 max-w-4xl" />

@@ -418,9 +418,9 @@ function RSVPCard({ response }) {
   function formatAgeGroup(ageGroup) {
     switch (ageGroup) {
       case "child_under_3":
-        return "Criança ≤3 anos";
+        return "Bebé (0–3 anos)";
       case "child_under_9":
-        return "Criança 4–9 anos";
+        return "Criança (4–9 anos)";
       default:
         return "Adulto";
     }
