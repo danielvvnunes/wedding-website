@@ -130,37 +130,38 @@ export default function AdminRSVP() {
   }, [isAuthenticated, fetchResponses]);
 
   const stats = useMemo(() => {
-    const attending = responses.filter((r) => r.attending);
-    const declined = responses.filter((r) => !r.attending);
+    const allPeople = responses.flatMap((response) => response.people || []);
 
-    const guests = attending.reduce(
-      (total, r) => total + Number(r.guests_count || 0),
-      0,
+    const attendingPeople = allPeople.filter(
+      (person) => person.attending === "yes",
     );
 
-    const childrenUnder3 = attending.reduce(
-      (total, r) => total + Number(r.children_under_3 || 0),
-      0,
+    const declinedPeople = allPeople.filter(
+      (person) => person.attending === "no",
     );
 
-    const childrenUnder5 = attending.reduce(
-      (total, r) => total + Number(r.children_under_5 || 0),
-      0,
-    );
+    const childrenUnder3 = attendingPeople.filter(
+      (person) => person.ageGroup === "child_under_3",
+    ).length;
 
-    const totalPeople = attending.length + guests;
-    const adults = totalPeople - childrenUnder3 - childrenUnder5;
+    const childrenUnder9 = attendingPeople.filter(
+      (person) => person.ageGroup === "child_under_9",
+    ).length;
+
+    const adults = attendingPeople.filter(
+      (person) => person.ageGroup === "adult",
+    ).length;
 
     return {
-      confirmed: attending.length,
-      declined: declined.length,
-      guests,
-      childrenUnder3,
-      childrenUnder5,
-      totalPeople,
+      confirmed: attendingPeople.length,
+      declined: declinedPeople.length,
+      totalPeople: attendingPeople.length,
       adults,
+      childrenUnder3,
+      childrenUnder9,
     };
   }, [responses]);
+
   const attendanceData = [
     { name: "Confirmados", value: stats.confirmed },
     { name: "Não vão", value: stats.declined },
@@ -169,28 +170,30 @@ export default function AdminRSVP() {
   const COLORS = ["#b7c4b0", "#d9a6a6"];
 
   function exportCSV() {
-    const rows = responses.map((r) => ({
-      Nome: r.guest_name ?? "",
-      Contacto: r.contact ?? "",
-      Presenca: r.attending ? "Sim" : "Não",
-      Acompanhantes: r.guests_count ?? 0,
-      Nomes: r.guests_names ?? "",
-      CriancasAte3: r.children_under_3 ?? 0,
-      CriancasAte5: r.children_under_5 ?? 0,
-      Notas: r.notes ?? "",
-      Data: r.created_at ? new Date(r.created_at).toLocaleString("pt-PT") : "",
-    }));
+    const rows = responses.flatMap((response) =>
+      (response.people || []).map((person) => ({
+        Nome: person.name ?? "",
+        Email: person.email ?? "",
+        Contacto: person.phone ?? "",
+        Presenca: person.attending === "yes" ? "Sim" : "Não",
+        Tipo: person.ageGroup ?? "",
+        RestricoesAlimentares: person.dietary ?? "",
+        NotasGerais: response.notes ?? "",
+        Data: response.created_at
+          ? new Date(response.created_at).toLocaleString("pt-PT")
+          : "",
+      })),
+    );
 
     const headers = Object.keys(
       rows[0] ?? {
         Nome: "",
+        Email: "",
         Contacto: "",
         Presenca: "",
-        Acompanhantes: "",
-        Nomes: "",
-        CriancasAte3: "",
-        CriancasAte5: "",
-        Notas: "",
+        Tipo: "",
+        RestricoesAlimentares: "",
+        NotasGerais: "",
         Data: "",
       },
     );
@@ -294,7 +297,7 @@ export default function AdminRSVP() {
           <StatCard label="Não vão" value={stats.declined} />
           <StatCard label="Adultos" value={stats.adults} />
           <StatCard label="Crianças ≤3" value={stats.childrenUnder3} />
-          <StatCard label="Crianças ≤5" value={stats.childrenUnder5} />
+          <StatCard label="Crianças ≤9" value={stats.childrenUnder9} />
         </div>
 
         <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
@@ -342,7 +345,7 @@ export default function AdminRSVP() {
             <MiniStat label="Total" value={stats.totalPeople} />
             <MiniStat label="Adultos" value={stats.adults} />
             <MiniStat label="Crianças ≤3" value={stats.childrenUnder3} />
-            <MiniStat label="Crianças ≤5" value={stats.childrenUnder5} />
+            <MiniStat label="Crianças ≤9" value={stats.childrenUnder9} />
           </div>
         </section>
 
@@ -404,48 +407,83 @@ function RSVPCard({ response }) {
     ? new Date(response.created_at).toLocaleString("pt-PT")
     : "";
 
+  const people = response.people || [];
+  const attendingCount = people.filter(
+    (person) => person.attending === "yes",
+  ).length;
+  const declinedCount = people.filter(
+    (person) => person.attending === "no",
+  ).length;
+
+  function formatAgeGroup(ageGroup) {
+    switch (ageGroup) {
+      case "child_under_3":
+        return "Criança ≤3 anos";
+      case "child_under_9":
+        return "Criança 4–9 anos";
+      default:
+        return "Adulto";
+    }
+  }
+
   return (
     <article className="rounded-[2rem] border border-[#b7c4b0]/35 bg-white/45 p-6 shadow-[0_12px_40px_rgba(143,159,138,0.10)] backdrop-blur">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <span
-            className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] ${
-              response.attending
-                ? "bg-[#b7c4b0]/18 text-[#7f8f78]"
-                : "bg-[#d9a6a6]/25 text-[#b76f6f]"
-            }`}
-          >
-            {response.attending ? "Vai estar presente" : "Não pode ir"}
+          <span className="inline-flex rounded-full bg-[#b7c4b0]/18 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#7f8f78]">
+            {attendingCount} confirmados · {declinedCount} não vão
           </span>
 
           <h2 className="mt-4 text-3xl font-extrabold leading-none tracking-[-0.04em] text-[#b7c4b0]">
-            {response.guest_name || "Sem nome"}
+            {people
+              .map((person) => person.name)
+              .filter(Boolean)
+              .join(", ") || "Sem nome"}
           </h2>
-
-          <p className="mt-3 text-[#8f9f8a]">{response.contact}</p>
         </div>
 
         <p className="text-sm text-[#cdb892]">{date}</p>
       </div>
 
-      {response.attending && (
-        <div className="mt-6 grid gap-3 md:grid-cols-2">
-          <Info label="Acompanhantes" value={response.guests_count || "0"} />
+      <div className="mt-6 grid gap-3">
+        {people.map((person, index) => (
+          <div
+            key={`${person.name}-${index}`}
+            className="rounded-[1.3rem] border border-[#b7c4b0]/20 bg-[#fbfaf5]/55 p-4"
+          >
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-lg font-bold text-[#7f8f78]">
+                  {person.name || `Pessoa ${index + 1}`}
+                </p>
 
-          {Number(response.guests_count) > 0 && (
-            <Info label="Nomes" value={response.guests_names || "Sem nomes"} />
-          )}
+                <p className="mt-1 text-sm text-[#8f9f8a]">
+                  {person.email || "Sem email"} ·{" "}
+                  {person.phone || "Sem contacto"}
+                </p>
+              </div>
 
-          <Info
-            label="Crianças até 3 anos"
-            value={response.children_under_3 || "0"}
-          />
-          <Info
-            label="Crianças até 5 anos"
-            value={response.children_under_5 || "0"}
-          />
-        </div>
-      )}
+              <span
+                className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${
+                  person.attending === "yes"
+                    ? "bg-[#b7c4b0]/18 text-[#7f8f78]"
+                    : "bg-[#d9a6a6]/25 text-[#b76f6f]"
+                }`}
+              >
+                {person.attending === "yes" ? "Vai" : "Não vai"}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <Info label="Tipo" value={formatAgeGroup(person.ageGroup)} />{" "}
+              <Info
+                label="Restrições alimentares"
+                value={person.dietary || "Sem restrições"}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
 
       {response.notes && (
         <div className="mt-5 rounded-[1.4rem] border border-[#cdb892]/20 bg-[#fbfaf5]/55 p-4">
@@ -458,7 +496,6 @@ function RSVPCard({ response }) {
     </article>
   );
 }
-
 function Info({ label, value }) {
   return (
     <div className="rounded-[1.3rem] border border-[#b7c4b0]/20 bg-[#fbfaf5]/55 p-4">

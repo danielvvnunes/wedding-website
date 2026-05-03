@@ -1,6 +1,7 @@
 // import hotel1Img from "./assets/hotel1.jpg";
 // import hotel2Img from "./assets/hotel2.jpg";
-import hotel3Img from "./assets/hotel3.jpg";
+// import hotel3Img from "./assets/hotel3.jpg";
+import { Link } from "react-router-dom";
 
 const styles = `
 @import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap");
@@ -45,39 +46,62 @@ const styles = `
 }
 `;
 
-const accommodations = [
-  {
-    name: "Hotel sugerido 1",
-    area: "Lisboa / Loures",
-    description:
-      "Boa opção para quem quer ficar relativamente perto da igreja e com acesso fácil à quinta.",
-    link: "#",
-    image: hotel3Img,
-  },
-  {
-    name: "Hotel sugerido 2",
-    area: "Sacavém / Parque das Nações",
-    description:
-      "Zona prática para quem vem de fora, com transportes, restaurantes e ligação rápida ao aeroporto.",
-    link: "#",
-    image: hotel3Img,
-  },
-  {
-    name: "Hotel sugerido 3",
-    area: "Santa Iria da Azóia / Alverca",
-    description:
-      "Opção mais próxima da cerimónia, ideal para quem prefere evitar deslocações longas no próprio dia.",
-    link: "#",
-    image: hotel3Img,
-  },
-];
+// const accommodations = [
+//   {
+//     name: "Hotel sugerido 1",
+//     area: "Lisboa / Loures",
+//     description:
+//       "Boa opção para quem quer ficar relativamente perto da igreja e com acesso fácil à quinta.",
+//     link: "#",
+//     image: hotel3Img,
+//   },
+//   {
+//     name: "Hotel sugerido 2",
+//     area: "Sacavém / Parque das Nações",
+//     description:
+//       "Zona prática para quem vem de fora, com transportes, restaurantes e ligação rápida ao aeroporto.",
+//     link: "#",
+//     image: hotel3Img,
+//   },
+//   {
+//     name: "Hotel sugerido 3",
+//     area: "Santa Iria da Azóia / Alverca",
+//     description:
+//       "Opção mais próxima da cerimónia, ideal para quem prefere evitar deslocações longas no próprio dia.",
+//     link: "#",
+//     image: hotel3Img,
+//   },
+// ];
 
 export default function AccommodationAndLocations() {
   return (
     <main className="page-bg min-h-screen text-[#8f9f8a]">
       <style>{styles}</style>
-
-      <section className="px-6 py-20 text-center md:py-28">
+      <section className="relative px-6 py-20 text-center md:py-28">
+        <div className="absolute right-6 top-6 z-20 md:right-10 md:top-10">
+          <Link
+            to="/"
+            className="
+      inline-flex items-center gap-2
+      rounded-full
+      border border-[#cdb892]
+      bg-[#fbfaf5]/75
+      px-5 py-3
+      text-[10px] font-bold uppercase tracking-[0.22em]
+      text-[#cdb892]
+      backdrop-blur-sm
+      transition-all duration-300
+      hover:-translate-y-[2px]
+      hover:bg-[#cdb892]
+      hover:text-white
+      hover:shadow-[0_8px_30px_rgba(205,184,146,0.35)]
+      md:px-6
+      md:text-xs
+    "
+          >
+            ← Voltar ao convite
+          </Link>
+        </div>
         <div className="mx-auto max-w-5xl">
           <p className="gold-accent text-xs font-semibold uppercase tracking-[0.45em]">
             Informações úteis
@@ -95,8 +119,7 @@ export default function AccommodationAndLocations() {
           </p>
         </div>
       </section>
-
-      <section className="section-green px-6 py-20 md:py-28">
+      {/* <section className="section-green px-6 py-20 md:py-28">
         <div className="mx-auto max-w-6xl">
           <SectionTitle
             eyebrow="Alojamento"
@@ -110,22 +133,22 @@ export default function AccommodationAndLocations() {
             ))}
           </div>
         </div>
-      </section>
-
+      </section> */}
       <section className="section-cream px-6 py-20 md:py-28">
         <div className="mx-auto max-w-6xl">
           <SectionTitle
             eyebrow="Cerimónia"
-            title="Paróquia de Santa Iria da Azóia"
+            title="A Igreja"
             text="A cerimónia será na igreja, em Santa Iria da Azóia. Sugerimos chegarem com alguma antecedência para estacionar com calma e entrar sem pressas."
           />
 
           <LocationBlock
             label="Igreja"
-            title="Paróquia de Santa Iria da Azóia"
-            address="Santa Iria da Azóia"
-            mapSrc="https://www.google.com/maps?q=Paróquia%20de%20Santa%20Iria%20da%20Azóia&output=embed"
-            mapsLink="https://www.google.com/maps/search/?api=1&query=Paróquia%20de%20Santa%20Iria%20da%20Azóia"
+            title="Igreja Matriz de Santa Iria de Azóia"
+            address="Rua de Angola, 2690-344 Santa Iria de Azoia"
+            mapSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3107.4179527991105!2d-9.089307422493851!3d38.84578887173518!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd192e89465d51d7%3A0x443515f5b1f840ae!2sIgreja%20Matriz%20de%20Santa%20Iria%20de%20Az%C3%B3ia!5e0!3m2!1spt-PT!2spt!4v1777837111002!5m2!1spt-PT!2spt"
+            mapsLink="https://maps.app.goo.gl/YzoaNzKpyaUGtN9r5"
+            wazeLink="https://waze.com/ul/heycscpxjh"
           />
         </div>
       </section>
@@ -140,14 +163,14 @@ export default function AccommodationAndLocations() {
 
           <LocationBlock
             label="Quinta"
-            title="Nome da quinta"
-            address="Morada da quinta"
-            mapSrc="https://www.google.com/maps?q=Quinta%20casamento%20Lisboa&output=embed"
-            mapsLink="https://www.google.com/maps/search/?api=1&query=Quinta%20casamento%20Lisboa"
+            title="Quinta do Coração"
+            address="Estrada da Arruda, Quinta do Coração, A-dos-Bispos, 2600-011 Vila Franca de Xira"
+            mapSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d49638.49983203811!2d-8.98999735!3d38.960391!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd1927e169ab253d%3A0xbb3a6b144f0b0c1c!2sQuinta%20do%20Cora%C3%A7%C3%A3o%20-%20Grupo%20MS!5e0!3m2!1spt-PT!2spt!4v1777837219637!5m2!1spt-PT!2spt"
+            mapsLink="https://maps.app.goo.gl/5WhycQxLRoJb59EfA"
+            wazeLink="https://waze.com/ul/heyctdgxz2"
           />
         </div>
       </section>
-
       <footer className="section-cream px-6 py-14 text-center">
         <p className="text-3xl font-extrabold tracking-[-0.06em] text-[#b7c4b0]">
           F · D
@@ -181,42 +204,42 @@ function SectionTitle({ eyebrow, title, text }) {
   );
 }
 
-function AccommodationItem({ name, area, description, link, image }) {
-  return (
-    <article className="text-center">
-      {/* Imagem */}
-      <div className="overflow-hidden rounded-[1.8rem] border border-[#b7c4b0]/35 shadow-[0_14px_45px_rgba(143,159,138,0.12)]">
-        <img
-          src={image}
-          alt={name}
-          className="h-[200px] w-full object-cover transition duration-700 hover:scale-105"
-        />
-      </div>
+// function AccommodationItem({ name, area, description, link, image }) {
+//   return (
+//     <article className="text-center">
+//       {/* Imagem */}
+//       <div className="overflow-hidden rounded-[1.8rem] border border-[#b7c4b0]/35 shadow-[0_14px_45px_rgba(143,159,138,0.12)]">
+//         <img
+//           src={image}
+//           alt={name}
+//           className="h-[200px] w-full object-cover transition duration-700 hover:scale-105"
+//         />
+//       </div>
 
-      <p className="gold-accent mt-6 text-xs font-semibold uppercase tracking-[0.35em]">
-        {area}
-      </p>
+//       <p className="gold-accent mt-6 text-xs font-semibold uppercase tracking-[0.35em]">
+//         {area}
+//       </p>
 
-      <h3 className="mt-4 text-3xl font-extrabold leading-none tracking-[-0.03em] text-[#6f7f69]">
-        {name}
-      </h3>
+//       <h3 className="mt-4 text-3xl font-extrabold leading-none tracking-[-0.03em] text-[#6f7f69]">
+//         {name}
+//       </h3>
 
-      <p className="mt-4 text-base font-light leading-7 text-[#7f8f78]">
-        {description}
-      </p>
+//       <p className="mt-4 text-base font-light leading-7 text-[#7f8f78]">
+//         {description}
+//       </p>
 
-      <a
-        href={link}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-6 inline-flex rounded-full border border-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.26em] text-[#cdb892] transition hover:bg-[#cdb892] hover:text-white"
-      >
-        Ver alojamento
-      </a>
-    </article>
-  );
-}
-function LocationBlock({ label, title, address, mapSrc, mapsLink }) {
+//       <a
+//         href={link}
+//         target="_blank"
+//         rel="noreferrer"
+//         className="mt-6 inline-flex rounded-full border border-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.26em] text-[#cdb892] transition hover:bg-[#cdb892] hover:text-white"
+//       >
+//         Ver alojamento
+//       </a>
+//     </article>
+//   );
+// }
+function LocationBlock({ label, title, address, mapSrc, mapsLink, wazeLink }) {
   return (
     <div className="mt-16 grid gap-10 md:grid-cols-[0.8fr_1.2fr] md:items-center">
       <div>
@@ -232,14 +255,25 @@ function LocationBlock({ label, title, address, mapSrc, mapsLink }) {
           {address}
         </p>
 
-        <a
-          href={mapsLink}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-8 inline-flex rounded-full border border-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.26em] text-[#cdb892] transition hover:bg-[#cdb892] hover:text-white"
-        >
-          Abrir no Google Maps
-        </a>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <a
+            href={mapsLink}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex justify-center rounded-full border border-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.26em] text-[#cdb892] transition hover:bg-[#cdb892] hover:text-white"
+          >
+            Google Maps
+          </a>
+
+          <a
+            href={wazeLink}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex justify-center rounded-full border border-[#8f9f8a] px-6 py-3 text-xs font-bold uppercase tracking-[0.26em] text-[#8f9f8a] transition hover:bg-[#8f9f8a] hover:text-white"
+          >
+            Waze
+          </a>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-[1.8rem] border border-[#b7c4b0]/35 bg-white/40 shadow-[0_14px_45px_rgba(143,159,138,0.12)]">

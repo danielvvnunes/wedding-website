@@ -9,6 +9,7 @@ import BuffetImg from "./assets/icons/buffet.png";
 import CerimoniaImg from "./assets/icons/cerimonia.png";
 import BoloImg from "./assets/icons/bolo.png";
 import IgrejaImg from "./assets/icons/igreja.png";
+import { Link } from "react-router-dom";
 
 import { useParams } from "react-router-dom";
 import { supabase } from "./lib/supabase";
@@ -524,9 +525,9 @@ function useRevealOnScroll() {
 
 function SectionNav() {
   return (
-    <header className="sticky top-0 z-40 border-b border-[#cdb892]/25 bg-[#eef3ea]/92 px-4 py-4 shadow-[0_8px_26px_rgba(143,159,138,0.12)] backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f8f78]">
-        <div className="flex gap-2 sm:gap-3">
+    <header className="sticky top-0 z-40 border-b border-[#cdb892]/25 bg-[#eef3ea]/92 px-3 py-3 shadow-[0_8px_26px_rgba(143,159,138,0.12)] backdrop-blur-xl">
+      <nav className="mx-auto max-w-6xl">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f8f78] sm:gap-3 sm:text-[11px] sm:tracking-[0.22em]">
           <a
             href="#programa"
             className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
@@ -541,12 +542,19 @@ function SectionNav() {
             Locais
           </a>
 
-          <a
-            href="#"
+          <Link
+            to="/convemsaber"
             className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
           >
-            Alojamentos
-          </a>
+            Localização
+          </Link>
+
+          <Link
+            to="/galeria"
+            className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
+          >
+            Galeria
+          </Link>
 
           <a
             href="#rsvp"
@@ -572,7 +580,6 @@ export default function WeddingWebsiteV3() {
   });
 
   const [isOpening, setIsOpening] = useState(false);
-  const [hasGuests, setHasGuests] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -581,19 +588,81 @@ export default function WeddingWebsiteV3() {
 
   const { guestSlug } = useParams();
   const guest = guestSlug ? guests[guestSlug] : null;
-  const [name, setName] = useState(() =>
-    guest ? guest.names.filter(Boolean).join(", ") : "",
+
+  const storageKey = `rsvp-form-${guestSlug || "default"}`;
+
+  const savedForm = (() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [notes, setNotes] = useState(savedForm?.notes || "");
+
+  const [people, setPeople] = useState(
+    savedForm?.people ||
+      (guest
+        ? guest.names.map((personName) => ({
+            name: personName,
+            email: "",
+            phone: "",
+            attending: "yes",
+            dietary: "",
+            ageGroup: "adult",
+          }))
+        : [
+            {
+              name: "",
+              email: "",
+              phone: "",
+              attending: "yes",
+              dietary: "",
+              ageGroup: "adult",
+            },
+          ]),
   );
-  const [contact, setContact] = useState("");
-  const [attending, setAttending] = useState("yes");
-  const [guestsCount, setGuestsCount] = useState("");
-  const [guestsNames, setGuestsNames] = useState("");
-  const [notes, setNotes] = useState("");
 
   const weddingDate = "26 de setembro de 2026";
 
-  const [childrenUnder3, setChildrenUnder3] = useState(0);
-  const [childrenUnder5, setChildrenUnder5] = useState(0);
+  useEffect(() => {
+    const formState = {
+      people,
+      notes,
+    };
+
+    localStorage.setItem(storageKey, JSON.stringify(formState));
+  }, [people, notes, storageKey]);
+
+  function updatePerson(index, field, value) {
+    setPeople((current) =>
+      current.map((person, personIndex) =>
+        personIndex === index ? { ...person, [field]: value } : person,
+      ),
+    );
+  }
+
+  function addPerson() {
+    setPeople((current) => [
+      ...current,
+      {
+        name: "",
+        email: "",
+        phone: "",
+        attending: "yes",
+        dietary: "",
+        ageGroup: "adult",
+      },
+    ]);
+  }
+
+  function removePerson(index) {
+    setPeople((current) =>
+      current.filter((_, personIndex) => personIndex !== index),
+    );
+  }
 
   useRevealOnScroll();
 
@@ -606,6 +675,33 @@ export default function WeddingWebsiteV3() {
       minutes: Math.max(0, Math.floor((total / (1000 * 60)) % 60)),
       seconds: Math.max(0, Math.floor((total / 1000) % 60)),
     };
+  }
+
+  function downloadCalendarInvite() {
+    const event = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "SUMMARY:Casamento Francisca e Daniel",
+      "DTSTART:20260926T103000Z",
+      "DTEND:20260927T000000Z",
+      "LOCATION:Igreja Matriz de Santa Iria de Azóia e Quinta do Coração",
+      "DESCRIPTION:Casamento da Francisca e do Daniel",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\n");
+
+    const blob = new Blob([event], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "casamento-francisca-daniel.ics";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
   }
 
   async function submitRSVP(data) {
@@ -913,24 +1009,26 @@ export default function WeddingWebsiteV3() {
               onSubmit={async (e) => {
                 e.preventDefault();
 
-                if (!contact) {
+                const hasAnyContact = people.some(
+                  (person) => person.email.trim() || person.phone.trim(),
+                );
+
+                if (!hasAnyContact) {
                   setSubmitStatus("missing-contact");
                   return;
                 }
-
                 setIsSubmitting(true);
                 setSubmitStatus(null);
 
+                const attendingPeople = people.filter(
+                  (person) => person.attending === "yes",
+                );
+
                 const success = await submitRSVP({
                   guest_slug: guestSlug,
-                  guest_name: name,
-                  contact,
-                  attending: attending === "yes",
-                  has_guests: hasGuests,
-                  guests_count: hasGuests ? guestsCount : null,
-                  guests_names: hasGuests ? guestsNames : null,
-                  children_under_3: hasGuests ? childrenUnder3 : null,
-                  children_under_5: hasGuests ? childrenUnder5 : null,
+                  people,
+                  attending_count: attendingPeople.length,
+                  not_attending_count: people.length - attendingPeople.length,
                   notes,
                 });
 
@@ -938,177 +1036,140 @@ export default function WeddingWebsiteV3() {
 
                 setSubmitStatus(
                   success
-                    ? attending === "yes"
+                    ? attendingPeople.length > 0
                       ? "attending"
                       : "not-attending"
                     : "error",
                 );
+                if (success) {
+                  localStorage.removeItem(storageKey);
+                }
               }}
             >
-              {/* Nome */}
-              <div className="space-y-2">
-                <label className="form-label">Nome</label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  readOnly={!!guest}
-                  className="minimal-field"
-                />
-              </div>
-
-              {/* Contacto */}
-              <div className="space-y-2">
-                <label className="form-label">Email ou contacto</label>
-                <input
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  required
-                  className="minimal-field"
-                />
-              </div>
-
-              {/* Presença mobile */}
-              <div className="md:hidden space-y-3">
-                <p className="form-label">Presença</p>
-                <div className="grid gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setAttending("yes")}
-                    className={`choice-button ${attending === "yes" ? "choice-button-active" : ""}`}
-                  >
-                    Vou estar presente
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAttending("no");
-                      setHasGuests(false);
-                    }}
-                    className={`choice-button ${attending === "no" ? "choice-button-active" : ""}`}
-                  >
-                    Não poderei ir
-                  </button>
+              <div className="space-y-5">
+                <div className="text-center">
+                  <p className="form-label">Pessoas incluídas neste convite</p>
+                  <p className="mt-2 text-sm font-light leading-6 text-[#8f9f8a]">
+                    Confirmem cada pessoa individualmente, para sabermos
+                    exatamente quem estará presente.
+                  </p>
                 </div>
-              </div>
 
-              {/* Presença desktop */}
-              <div className="hidden md:block space-y-2">
-                <label className="form-label">Presença</label>
-                <select
-                  value={attending}
-                  onChange={(e) => setAttending(e.target.value)}
-                  className="minimal-field minimal-select"
-                >
-                  <option value="yes">Vou estar presente</option>
-                  <option value="no">Não poderei ir</option>
-                </select>
-              </div>
+                {people.map((person, index) => (
+                  <div
+                    key={index}
+                    className="rounded-[1.6rem] border border-[#b7c4b0]/35 bg-white/35 p-5"
+                  >
+                    <div className="mb-5 flex items-center justify-between gap-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#cdb892]">
+                        Pessoa {index + 1}
+                      </p>
 
-              {/* Acompanhantes mobile */}
-              {attending === "yes" && (
-                <>
-                  <div className="md:hidden space-y-3">
-                    <p className="form-label">Acompanhantes</p>
-
-                    <div className="grid gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setHasGuests(false)}
-                        className={`choice-button ${!hasGuests ? "choice-button-active" : ""}`}
-                      >
-                        Vou sozinho/a
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setHasGuests(true)}
-                        className={`choice-button ${hasGuests ? "choice-button-active" : ""}`}
-                      >
-                        Vou levar acompanhantes
-                      </button>
+                      {people.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removePerson(index)}
+                          className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8f9f8a] transition hover:text-[#cdb892]"
+                        >
+                          Remover
+                        </button>
+                      )}
                     </div>
-                  </div>
 
-                  {/* Acompanhantes desktop */}
-                  <div className="hidden md:block space-y-2">
-                    <label className="form-label">Acompanhantes</label>
-                    <select
-                      value={hasGuests ? "acompanha" : "solo"}
-                      onChange={(e) =>
-                        setHasGuests(e.target.value === "acompanha")
-                      }
-                      className="minimal-field minimal-select"
-                    >
-                      <option value="solo">Vou sozinho/a</option>
-                      <option value="acompanha">Vou levar acompanhantes</option>
-                    </select>
-                  </div>
-
-                  {/* Campos extra */}
-                  {hasGuests && (
-                    <>
-                      <div className="space-y-2">
-                        <label className="form-label">
-                          Número total de acompanhantes
-                        </label>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="form-label">Nome</label>
                         <input
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={guestsCount}
-                          onChange={(e) => setGuestsCount(e.target.value)}
+                          value={person.name}
+                          onChange={(e) =>
+                            updatePerson(index, "name", e.target.value)
+                          }
                           className="minimal-field"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label className="form-label">
-                          Nome dos acompanhantes
-                        </label>
-                        <textarea
-                          value={guestsNames}
-                          onChange={(e) => setGuestsNames(e.target.value)}
-                          placeholder="Separar por vírgulas"
-                          className="minimal-field min-h-24"
+                        <label className="form-label">Email</label>
+                        <input
+                          value={person.email}
+                          onChange={(e) =>
+                            updatePerson(index, "email", e.target.value)
+                          }
+                          className="minimal-field"
                         />
                       </div>
 
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <label className="form-label">
-                            Crianças até 3 anos
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="10"
-                            value={childrenUnder3}
-                            placeholder="0"
-                            onChange={(e) => setChildrenUnder3(e.target.value)}
-                            className="minimal-field"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="form-label">
-                            Crianças até 5 anos
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="10"
-                            value={childrenUnder5}
-                            placeholder="0"
-                            onChange={(e) => setChildrenUnder5(e.target.value)}
-                            className="minimal-field"
-                          />
-                        </div>
+                      <div className="space-y-2">
+                        <label className="form-label">Contacto</label>
+                        <input
+                          value={person.phone}
+                          onChange={(e) =>
+                            updatePerson(index, "phone", e.target.value)
+                          }
+                          className="minimal-field"
+                        />
                       </div>
-                    </>
-                  )}
-                </>
-              )}
+
+                      <div className="space-y-2">
+                        <label className="form-label">Presença</label>
+                        <select
+                          value={person.attending}
+                          onChange={(e) =>
+                            updatePerson(index, "attending", e.target.value)
+                          }
+                          className="minimal-field minimal-select"
+                        >
+                          <option value="yes">Vai estar presente</option>
+                          <option value="no">Não poderá ir</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="form-label">Tipo</label>
+                        <select
+                          value={person.ageGroup}
+                          onChange={(e) =>
+                            updatePerson(index, "ageGroup", e.target.value)
+                          }
+                          className="minimal-field minimal-select"
+                        >
+                          <option value="adult">Adulto</option>
+                          <option value="child_under_3">
+                            Criança até 3 anos
+                          </option>
+                          <option value="child_under_5">
+                            Criança até 9 anos
+                          </option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="form-label">
+                          Restrições alimentares
+                        </label>
+                        <input
+                          value={person.dietary}
+                          onChange={(e) =>
+                            updatePerson(index, "dietary", e.target.value)
+                          }
+                          placeholder="Ex: vegetariano, alergias, sem glúten..."
+                          className="minimal-field"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={addPerson}
+                    className="rounded-full border border-[#8f9f8a]/55 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-[#8f9f8a] transition hover:bg-[#8f9f8a] hover:text-white"
+                  >
+                    + Adicionar pessoa
+                  </button>
+                </div>
+              </div>
 
               {/* Notas */}
               <div className="space-y-2">
@@ -1190,7 +1251,57 @@ export default function WeddingWebsiteV3() {
                 </button>
               </div>
             </form>
+
+            {submitStatus === "attending" && (
+              <div className="mt-10 rounded-[2rem] border border-[#cdb892]/35 bg-white/45 p-6 text-center shadow-[0_18px_55px_rgba(143,159,138,0.12)] backdrop-blur-sm">
+                <p className="gold-accent text-xs font-semibold uppercase tracking-[0.35em]">
+                  Próximo passo
+                </p>
+
+                <h3 className="mt-4 text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
+                  Guardem a data
+                </h3>
+
+                <p className="mx-auto mt-4 max-w-xl text-base font-light leading-7 text-[#8f9f8a]">
+                  A vossa presença ficou confirmada. Podem agora adicionar o
+                  casamento ao calendário para terem o dia sempre à mão.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={downloadCalendarInvite}
+                  className="mt-7 inline-flex rounded-full border border-[#cdb892] px-8 py-3 text-xs font-bold uppercase tracking-[0.28em] text-[#cdb892] transition hover:-translate-y-[2px] hover:bg-[#cdb892] hover:text-white hover:shadow-[0_8px_30px_rgba(205,184,146,0.35)]"
+                >
+                  Adicionar ao calendário
+                </button>
+              </div>
+            )}
           </div>
+        </section>
+
+        <section className="text-center py-20">
+          <p className="gold-accent text-xs uppercase tracking-[0.4em]">
+            Memórias
+          </p>
+
+          <h2 className="mt-6 text-4xl font-extrabold text-[#b7c4b0]">
+            Partilhem as vossas fotografias
+          </h2>
+
+          <Link
+            to="/galeria"
+            className="
+      mt-8 inline-flex
+      rounded-full
+      border border-[#cdb892]
+      px-8 py-3
+      text-xs font-bold uppercase tracking-[0.3em]
+      text-[#cdb892]
+      transition hover:bg-[#cdb892] hover:text-white
+    "
+          >
+            Ir para galeria
+          </Link>
         </section>
 
         <footer className="section-cream px-6 py-16 text-center text-[#b7c4b0]">
@@ -1209,12 +1320,12 @@ export default function WeddingWebsiteV3() {
           {/* Telefones */}
           <div className="mt-6 flex justify-center gap-6 text-sm text-[#8f9f8a] tracking-[0.18em]">
             <span className="flex flex-col md:inline">
-              <span>☎ Daniel</span>
+              <span>Daniel: </span>
               <span className="md:inline">918 947 632</span>
             </span>
             <span className="opacity-40">|</span>
             <span className="flex flex-col md:inline">
-              <span>☎ Francisca</span>
+              <span>Francisca: </span>
               <span className="md:inline">965 518 462</span>
             </span>
           </div>
