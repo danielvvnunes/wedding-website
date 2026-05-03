@@ -1134,11 +1134,9 @@ export default function WeddingWebsiteV3() {
                           className="minimal-field minimal-select"
                         >
                           <option value="adult">Adulto</option>
-                          <option value="child_under_3">
-                            Criança até 3 anos
-                          </option>
-                          <option value="child_under_5">
-                            Criança até 9 anos
+                          <option value="child_under_3">Bebé (0-3 anos)</option>
+                          <option value="child_under_9">
+                            Criança (4-9 anos)
                           </option>
                         </select>
                       </div>
@@ -1174,7 +1172,7 @@ export default function WeddingWebsiteV3() {
               {/* Notas */}
               <div className="space-y-2">
                 <label className="form-label">
-                  Mensagem / restrições alimentares
+                  Deixa-nos uma memória que viveste connosco!
                 </label>
                 <textarea
                   value={notes}
