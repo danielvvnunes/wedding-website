@@ -607,7 +607,7 @@ export default function WeddingWebsiteV3() {
                 className="mx-auto w-[230px] opacity-35 mix-blend-multiply md:w-[300px]"
               />
 
-              <div className="mx-auto mt-2 flex items-center justify-center">
+              <div className="mx-auto  flex items-center justify-center">
                 <p className="whitespace-nowrap text-3xl font-extrabold tracking-[0.28em] md:text-5xl">
                   26.09.2026
                 </p>
