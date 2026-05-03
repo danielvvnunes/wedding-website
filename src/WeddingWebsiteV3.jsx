@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import casalLineImg from "./assets/casal-line.png";
-import Envelope from "./assets/envelope.jpeg";
+import Envelope from "./assets/envelope.png";
 import EnvelopeDesktop from "./assets/envelope-desktop.png";
 import AlmoçoImg from "./assets/icons/almoço.png";
 import CocktailImg from "./assets/icons/cocktail.png";
@@ -481,12 +481,23 @@ function formatNames(names) {
 
 function getGuestMessage(guest) {
   if (!guest) {
-    return "Depois de tantas memórias, aventuras e sonhos partilhados, chegou o momento de celebrar o nosso amor com as pessoas que mais importam.";
+    return (
+      <>
+        Depois de tantas memórias, aventuras e sonhos partilhados, chegou o
+        momento de celebrar o nosso amor com as pessoas que mais importam.
+      </>
+    );
   }
 
-  return `${guest.greeting} ${formatNames(
-    guest.names,
-  )}, queremos muito convidar-vos para celebrar este dia connosco.`;
+  return (
+    <>
+      <span className="gold-accent font-semibold text-[1.1em]">
+        {guest.greeting} {formatNames(guest.names)}
+      </span>
+      , queríamos muito que estivessem presentes para celebrar este dia
+      connosco.
+    </>
+  );
 }
 
 function useRevealOnScroll() {
@@ -614,7 +625,7 @@ export default function WeddingWebsiteV3() {
 
     window.setTimeout(() => {
       setIsOpen(true);
-    }, 2000);
+    }, 4200);
   }
 
   useEffect(() => {
@@ -666,7 +677,7 @@ export default function WeddingWebsiteV3() {
             <img
               src={Envelope}
               alt=""
-              className={`absolute inset-0 h-full w-full object-cover transition-all duration-[1400ms] ease-[cubic-bezier(.22,1,.36,1)] ${
+              className={`absolute inset-0 h-full w-full object-cover transition-all duration-[4200ms] ease-[cubic-bezier(.22,1,.36,1)] ${
                 isOpening
                   ? "scale-[1.08] opacity-0 blur-2xl"
                   : "scale-100 opacity-100 blur-0"
