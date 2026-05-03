@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import casalLineImg from "./assets/casal-line.png";
 import Envelope from "./assets/envelope.jpeg";
+import EnvelopeDesktop from "./assets/envelope-desktop.png";
+import AlmoçoImg from "./assets/icons/almoço.png";
+import CocktailImg from "./assets/icons/cocktail.png";
+import FestaImg from "./assets/icons/festa.png";
+import BuffetImg from "./assets/icons/buffet.png";
+import CerimoniaImg from "./assets/icons/cerimonia.png";
+import BoloImg from "./assets/icons/bolo.png";
+import IgrejaImg from "./assets/igreja.png";
+
 import { useParams } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 import igrejaImg from "./assets/igreja.png";
@@ -381,13 +390,6 @@ function SectionNav() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f8f78]">
         <div className="flex gap-2 sm:gap-3">
           <a
-            href="#detalhes"
-            className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
-          >
-            Detalhes
-          </a>
-
-          <a
             href="#programa"
             className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
           >
@@ -402,10 +404,17 @@ function SectionNav() {
           </a>
 
           <a
+            href="#"
+            className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
+          >
+            Alojamentos
+          </a>
+
+          <a
             href="#rsvp"
             className="rounded-full border border-[#cdb892]/45 px-3 py-2 text-[#cdb892] transition hover:bg-[#cdb892] hover:text-white"
           >
-            RSVP
+            Confirmações
           </a>
         </div>
       </nav>
@@ -420,8 +429,8 @@ export default function WeddingWebsiteV3() {
   });
 
   const [isOpen, setIsOpen] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.innerWidth >= 768;
+    if (typeof window === "undefined") return false;
+    return false;
   });
 
   const [isOpening, setIsOpening] = useState(false);
@@ -503,12 +512,7 @@ export default function WeddingWebsiteV3() {
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
-
       setIsMobile(mobile);
-
-      if (!mobile) {
-        setIsOpen(true);
-      }
     };
 
     checkMobile();
@@ -533,6 +537,39 @@ export default function WeddingWebsiteV3() {
           >
             <img
               src={Envelope}
+              alt=""
+              className={`absolute inset-0 h-full w-full object-cover transition-all duration-[1400ms] ease-[cubic-bezier(.22,1,.36,1)] ${
+                isOpening
+                  ? "scale-[1.08] opacity-0 blur-2xl"
+                  : "scale-100 opacity-100 blur-0"
+              }`}
+            />
+
+            {!isOpening && (
+              <div className="envelope-hint pointer-events-none absolute bottom-[84vh] left-1/2 z-20 -translate-x-1/2 text-center">
+                <div className="rounded-full bg-[#fbfaf5]/75 px-5 py-2.5 backdrop-blur-sm">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.32em] text-[#8f9f8a]">
+                    Toca para abrir
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {!isMobile && !isOpen && (
+        <section
+          className={`fixed inset-0 z-50 overflow-hidden ${
+            isOpening ? "pointer-events-none bg-transparent" : "bg-[#fbfaf5]"
+          }`}
+        >
+          <div
+            className="relative h-screen w-full cursor-pointer overflow-hidden"
+            onClick={openInvitation}
+          >
+            <img
+              src={EnvelopeDesktop}
               alt=""
               className={`absolute inset-0 h-full w-full object-cover transition-all duration-[1400ms] ease-[cubic-bezier(.22,1,.36,1)] ${
                 isOpening
@@ -618,36 +655,6 @@ export default function WeddingWebsiteV3() {
 
         <SectionNav />
 
-        {/* <section id="detalhes" className="section-light px-6 py-24 md:py-32">
-          <div className="mx-auto max-w-6xl">
-            <MinimalHeader
-              eyebrow="O nosso dia"
-              title="Uma celebração feita de detalhes."
-              text="Queremos que este seja um dia leve, bonito e cheio de momentos para guardar. Aqui ficam os principais detalhes da celebração."
-            />
-
-            <div className="mt-20 space-y-16">
-              <MinimalDetail
-                number="01"
-                title="Cerimónia"
-                text="Às 11h30, na Paróquia de Santa Iria da Azóia, onde vamos trocar os nossos votos rodeados por quem mais amamos."
-              />
-
-              <MinimalDetail
-                number="02"
-                title="Cocktail"
-                text="Às 14h00, um momento para brindar, conversar e começar a celebrar em conjunto."
-              />
-
-              <MinimalDetail
-                number="03"
-                title="Festa"
-                text="Música, dança e uma noite inesquecível com todos vocês."
-              />
-            </div>
-          </div>
-        </section> */}
-
         <section id="countdown" className="section-green px-6 py-24 md:py-32">
           <div className="mx-auto max-w-6xl">
             <MinimalHeader
@@ -685,36 +692,43 @@ export default function WeddingWebsiteV3() {
               <Timeline
                 time="11:00"
                 title="Chegada"
+                image={CerimoniaImg}
                 text="Receção dos convidados junto à Igreja."
               />
               <Timeline
                 time="11:30"
                 title="Cerimónia"
+                image={CerimoniaImg}
                 text="O momento em que dizemos sim."
               />
               <Timeline
                 time="14:00"
                 title="Cocktail"
+                image={CocktailImg}
                 text="Brindes, conversas e primeiros abraços."
               />
               <Timeline
                 time="17:00"
                 title="Almoço"
+                image={AlmoçoImg}
                 text="À mesa, com todos os que fazem parte da nossa história."
               />
               <Timeline
                 time="20:30"
                 title="Corte do bolo"
+                image={BoloImg}
                 text="Um momento doce para celebrar juntos.."
               />
               <Timeline
                 time="21:30"
                 title="Festa"
+                image={FestaImg}
                 text="Música, dança e memórias para guardar."
               />
               <Timeline
                 time="22:00"
                 title="Buffet"
+                image={BuffetImg}
                 text="Repor as energias para continuar a festa."
               />
             </div>
@@ -1127,7 +1141,7 @@ function CountdownBox({ number, label }) {
   );
 }
 
-function Timeline({ time, title, text }) {
+function Timeline({ time, image, title, text }) {
   return (
     <div className="reveal-on-scroll mx-auto grid max-w-4xl gap-6 border-t border-[#b7c4b0]/25 pt-10 md:grid-cols-[120px_1fr]">
       <p className="flex items-center gap-3 text-xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
@@ -1136,9 +1150,18 @@ function Timeline({ time, title, text }) {
       </p>
 
       <div>
-        <span className="text-xl font-semibold uppercase tracking-[0.5em]  text-[#cdb892] ">
-          {title}
-        </span>
+        <div className="flex items-center gap-4">
+          <img
+            src={image}
+            alt=""
+            aria-hidden="true"
+            className="h-8 w-8 object-contain opacity-80"
+          />
+
+          <span className="text-xl font-semibold uppercase tracking-[0.5em] text-[#cdb892]">
+            {title}
+          </span>
+        </div>
 
         <p className="mt-4 max-w-2xl text-lg font-light leading-8 text-[#8f9f8a]">
           {text}
@@ -1161,9 +1184,9 @@ function VenueText({ label, title, text, cta }) {
 
       <p className="mt-6 text-lg font-light leading-8 text-[#8f9f8a]">{text}</p>
 
-      <p className="mt-8 text-xs font-bold uppercase tracking-[0.35em] text-[#cdb892]">
+      <button className="cursor-pointer mt-8 text-xs font-bold uppercase tracking-[0.35em] text-[#cdb892]">
         {cta}
-      </p>
+      </button>
     </div>
   );
 }
