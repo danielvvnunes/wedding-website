@@ -300,7 +300,7 @@ export default function AdminRSVP() {
         <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
-              Presenças
+              Presenças!
             </h2>
 
             <p className="text-sm text-[#8f9f8a]">
