@@ -600,11 +600,19 @@ export default function WeddingWebsiteV3() {
               <HeroInfo label="Local" value="Santa Iria da Azóia" />
             </div>
 
-            <img
-              src={casalLineImg}
-              alt="Desenho de linha de Francisca e Daniel"
-              className="mx-auto mt-20 w-[230px] opacity-35 mix-blend-multiply md:w-[300px]"
-            />
+            <div className="mx-auto mt-20 text-center">
+              <img
+                src={casalLineImg}
+                alt="Desenho de linha de Francisca e Daniel"
+                className="mx-auto w-[230px] opacity-35 mix-blend-multiply md:w-[300px]"
+              />
+
+              <div className="mx-auto mt-2 flex items-center justify-center">
+                <p className="whitespace-nowrap text-3xl font-extrabold tracking-[0.28em] md:text-5xl">
+                  26.09.2026
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
