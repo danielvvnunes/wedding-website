@@ -1063,6 +1063,19 @@ export default function WeddingWebsiteV3() {
           <p className="mt-4 text-sm text-[#8f9f8a]">
             ✉ casamento.franciscadaniel@gmail.com
           </p>
+
+          {/* Telefones */}
+          <div className="mt-6 flex justify-center gap-6 text-sm text-[#8f9f8a] tracking-[0.18em]">
+            <span className="flex flex-col md:inline">
+              <span>☎ Daniel</span>
+              <span className="md:inline">918 947 632</span>
+            </span>
+            <span className="opacity-40">|</span>
+            <span className="flex flex-col md:inline">
+              <span>☎ Francisca</span>
+              <span className="md:inline">965 518 462</span>
+            </span>
+          </div>
         </footer>
       </div>
     </main>
@@ -1099,26 +1112,6 @@ function MinimalHeader({ eyebrow, title, text }) {
     </div>
   );
 }
-
-// function MinimalDetail({ number, title, text }) {
-//   return (
-//     <div className="reveal-on-scroll mx-auto grid max-w-4xl gap-6 md:grid-cols-[120px_1fr]">
-//       <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#b7c4b0]/70">
-//         {number}
-//       </p>
-
-//       <div>
-//         <h3 className="text-4xl font-extrabold uppercase leading-none tracking-[-0.06em] text-[#b7c4b0] md:text-5xl">
-//           {title}
-//         </h3>
-
-//         <p className="mt-5 max-w-2xl text-lg font-light leading-8 text-[#8f9f8a]">
-//           {text}
-//         </p>
-//       </div>
-//     </div>
-//   );
-// }
 
 function CountdownBox({ number, label }) {
   return (
