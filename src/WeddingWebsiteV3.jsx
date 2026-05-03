@@ -372,11 +372,122 @@ const customStyles = `
 }
 `;
 
-const guests = {
-  "tia-elsa": "Tia Elsa",
-  "avo-maria": "Avó Maria",
-  "joao-e-ana": "João e Ana",
-};
+const guestList = [
+  [["Pais"], "Queridos"],
+  [["Maria", "Tiago", "Matilde", "Manuel", "Tomás"], "Queridos"],
+  [["Irmã Margarida"], "Querida"],
+  [["Tia Ada"], "Querida"],
+  [["Padrinho Manuel", "Maria"], "Queridos"],
+  [["Prima Carolina", "Phil", "Matilde", "Vicente"], "Queridos"],
+  [["Prima Margarida"], "Querida"],
+  [["Tia Dina"], "Querida"],
+  [["Prima Catarina"], "Querida"],
+  [["Primo Rafael"], "Querido"],
+
+  [["Beatriz"], "Querida Amiga"],
+  [["Clara"], "Querida Amiga"],
+  [["Quecas"], "Querida Amiga"],
+  [["Carlos", "Inês"], "Queridos Amigos"],
+  [["Hugo"], "Querido Amigo"],
+  [["Daniela"], "Querida Amiga"],
+  [["Catarina Laginhas", "Família"], "Querida Amiga"],
+  [["João Fernandes"], "Querido Amigo"],
+  [["Bruno Vidal"], "Querido Amigo"],
+  [["João Azenha"], "Querido Amigo"],
+  [["Mariana Martins"], "Querida Amiga"],
+  [["Miguel"], "Querido Amigo"],
+  [["Raquel"], "Querida"],
+  [["Mafalda"], "Querida Amiga"],
+  [["Catarina Neto"], "Querida Amiga"],
+  [["Mariana Cardoso"], "Querida Amiga"],
+  [["Inês Marques"], "Querida Amiga"],
+  [["Chaliça"], "Querida Amiga"],
+  [["Popóxia"], "Querida Amiga"],
+  [["Pilay"], "Querida Amiga"],
+  [["Gina"], "Querida Amiga"],
+  [["Camões"], "Querido Afilhado"],
+  [["Célia"], "Querido Amigo"],
+  [["Lenka"], "Querida Amiga"],
+  [["Pombinhas"], "Querido Amigo"],
+
+  [["Pais"], "Queridos"],
+  [["Avós Alice e Alberto"], "Queridos"],
+  [["Avô Albano"], "Querido"],
+  [["Tio Zé", "Gina", "Vicente"], "Queridos"],
+  [["Padrinho Jorge", "Tia Sandra", "Primo Duarte"], "Queridos"],
+  [["Tia Maria Luís", "Vítor", "Primo Martim"], "Queridos"],
+  [["Prima Leonor", "Samuel"], "Queridos"],
+  [["Duarte"], "Primo"],
+  [["Tia Elsa", "Primo João"], "Queridos"],
+  [["Paulo"], "Caro"],
+  [["Luís", "Cristina"], "Queridos Primos"],
+  [["Primo André", "Catarina", "Ana Luísa"], "Queridos"],
+  [["Prima Sofia"], "Querida"],
+  [["Madrinha", "Martins"], "Queridos"],
+  [["Prima Olívia", "Mário"], "Queridos"],
+  [["Primo Gonçalo"], "Querido"],
+  [["Tia Deolinda"], "Querida"],
+
+  [["Aylton"], "Amigo"],
+  [["Nuno", "Quica"], "Amigos"],
+  [["Bruno", "Família"], "Amigo"],
+  [["Rodrigo"], "Amigo"],
+  [["Almeirante"], "Amigo"],
+  [["Tiago"], "Amigo"],
+  [["Zé"], "Amigo"],
+  [["Patrícia"], "Amiga"],
+  [["Ana Margarida", "António"], "Caros"],
+  [["Zé"], "Amigo"],
+  [["João"], "Amigo"],
+  [["Soraya", "David"], "Amigos"],
+  [["Tiago"], "Amigo"],
+  [["Luís", "Família"], "Amigo"],
+  [["Pina"], "Afilhado"],
+];
+
+function slugify(text) {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+const guests = Object.fromEntries(
+  guestList.map(([names, greeting]) => {
+    const firstName = names[0]; // 👈 só o primeiro
+    const slug = slugify(firstName);
+
+    return [
+      slug,
+      {
+        names: names.filter(Boolean),
+        greeting,
+      },
+    ];
+  }),
+);
+
+function formatNames(names) {
+  if (names.length === 1) return names[0];
+
+  if (names.length === 2) {
+    return `${names[0]} e ${names[1]}`;
+  }
+
+  return `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}`;
+}
+
+function getGuestMessage(guest) {
+  if (!guest) {
+    return "Depois de tantas memórias, aventuras e sonhos partilhados, chegou o momento de celebrar o nosso amor com as pessoas que mais importam.";
+  }
+
+  return `${guest.greeting} ${formatNames(
+    guest.names,
+  )}, queremos muito convidar-vos para celebrar este dia connosco.`;
+}
 
 function useRevealOnScroll() {
   useEffect(() => {
@@ -458,9 +569,10 @@ export default function WeddingWebsiteV3() {
   const [timeLeft, setTimeLeft] = useState(getTimeRemaining);
 
   const { guestSlug } = useParams();
-  const guestName = guestSlug ? guests[guestSlug] : null;
-
-  const [name, setName] = useState(() => guestName ?? "");
+  const guest = guestSlug ? guests[guestSlug] : null;
+  const [name, setName] = useState(() =>
+    guest ? guest.names.filter(Boolean).join(", ") : "",
+  );
   const [contact, setContact] = useState("");
   const [attending, setAttending] = useState("yes");
   const [guestsCount, setGuestsCount] = useState("");
@@ -633,18 +745,7 @@ export default function WeddingWebsiteV3() {
             </h1>
 
             <p className="mx-auto mt-10 max-w-2xl text-lg font-light leading-8 text-[#8f9f8a]">
-              {guestName ? (
-                <>
-                  Querida/o {guestName}, queremos muito celebrar este dia
-                  convosco.
-                </>
-              ) : (
-                <>
-                  Depois de tantas memórias, aventuras e sonhos partilhados,
-                  chegou o momento de celebrar o nosso amor com as pessoas que
-                  mais importam.
-                </>
-              )}
+              {getGuestMessage(guest)}
             </p>
 
             <div className="mx-auto mt-16 grid max-w-3xl gap-8 text-center text-xs font-semibold uppercase tracking-[0.34em] text-[#b7c4b0] sm:grid-cols-3">
@@ -839,7 +940,7 @@ export default function WeddingWebsiteV3() {
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  readOnly={!!guestName}
+                  readOnly={!!guest}
                   className="minimal-field"
                 />
               </div>

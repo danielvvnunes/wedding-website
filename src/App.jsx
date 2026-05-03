@@ -11,13 +11,10 @@ export default function App() {
     <Routes>
       <Route path="/" element={<WeddingWebsiteV1 />} />
       <Route path="/v1" element={<WeddingWebsiteV1 />} />
-
       <Route path="/v2" element={<WeddingWebsiteV2 />} />
       <Route path="/v3" element={<WeddingWebsiteV3 />} />
-
-      <Route path="/:guestSlug" element={<WeddingWebsiteV2 />} />
+      <Route path="/v3/:guestSlug" element={<WeddingWebsiteV3 />} />
       <Route path="/convemsaber" element={<ConvemSaber />} />
-
       <Route path="/admin" element={<AdminRSVP />} />
     </Routes>
   );
