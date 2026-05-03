@@ -8,7 +8,7 @@ import FestaImg from "./assets/icons/festa.png";
 import BuffetImg from "./assets/icons/buffet.png";
 import CerimoniaImg from "./assets/icons/cerimonia.png";
 import BoloImg from "./assets/icons/bolo.png";
-import IgrejaImg from "./assets/igreja.png";
+import IgrejaImg from "./assets/icons/igreja.png";
 
 import { useParams } from "react-router-dom";
 import { supabase } from "./lib/supabase";
@@ -129,6 +129,22 @@ const customStyles = `
   opacity: 1;
   transform: translateY(0);
 }
+
+.fullscreen-envelope {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+
+  background-image: url("/envelope-desktop.png");
+  background-size: cover;       /* cobre todo o ecrã */
+  background-position: center;  /* mantém centrado */
+  background-repeat: no-repeat;
+
+  image-rendering: auto;
+}
+
 
 .page-bg {
   background:
@@ -692,7 +708,7 @@ export default function WeddingWebsiteV3() {
               <Timeline
                 time="11:00"
                 title="Chegada"
-                image={CerimoniaImg}
+                image={IgrejaImg}
                 text="Receção dos convidados junto à Igreja."
               />
               <Timeline
@@ -715,7 +731,7 @@ export default function WeddingWebsiteV3() {
               />
               <Timeline
                 time="20:30"
-                title="Corte do bolo"
+                title="Bolo dos noivos"
                 image={BoloImg}
                 text="Um momento doce para celebrar juntos.."
               />
@@ -1143,25 +1159,26 @@ function CountdownBox({ number, label }) {
 
 function Timeline({ time, image, title, text }) {
   return (
-    <div className="reveal-on-scroll mx-auto grid max-w-4xl gap-6 border-t border-[#b7c4b0]/25 pt-10 md:grid-cols-[120px_1fr]">
-      <p className="flex items-center gap-3 text-xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
-        <span className="gold-dot h-2 w-2 rounded-full" />
-        {time}
-      </p>
+    <div className="reveal-on-scroll mx-auto grid max-w-4xl gap-6 border-t border-[#b7c4b0]/25 pt-10 md:grid-cols-[140px_1fr]">
+      {/* Tempo + imagem */}
+      <div className="flex items-center gap-4">
+        <img
+          src={image}
+          alt=""
+          aria-hidden="true"
+          className="h-6 w-6 object-contain opacity-80"
+        />
 
+        <p className="text-xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
+          {time}
+        </p>
+      </div>
+
+      {/* Conteúdo */}
       <div>
-        <div className="flex items-center gap-4">
-          <img
-            src={image}
-            alt=""
-            aria-hidden="true"
-            className="h-8 w-8 object-contain opacity-80"
-          />
-
-          <span className="text-xl font-semibold uppercase tracking-[0.5em] text-[#cdb892]">
-            {title}
-          </span>
-        </div>
+        <span className="text-xl font-semibold uppercase tracking-[0.5em] text-[#cdb892]">
+          {title}
+        </span>
 
         <p className="mt-4 max-w-2xl text-lg font-light leading-8 text-[#8f9f8a]">
           {text}
