@@ -3,6 +3,7 @@ import casalLineImg from "./assets/casal-line.png";
 import Envelope from "./assets/envelope.jpeg";
 import { useParams } from "react-router-dom";
 import { supabase } from "./lib/supabase";
+import igrejaImg from "./assets/igreja.png";
 
 const customStyles = `
 @import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap");
@@ -198,6 +199,48 @@ const customStyles = `
   color: #8f9f8a;
 }
 
+.title-font-cormorant h1,
+.title-font-cormorant h2,
+.title-font-cormorant h3 {
+  font-family: "Cormorant Garamond", serif;
+}
+
+.title-font-playfair h1,
+.title-font-playfair h2,
+.title-font-playfair h3 {
+  font-family: "Playfair Display SC", serif;
+}
+
+.title-font-poppins h1,
+.title-font-poppins h2,
+.title-font-poppins h3 {
+  font-family: "Poppins", sans-serif;
+}
+
+.title-font-inter h1,
+.title-font-inter h2,
+.title-font-inter h3 {
+  font-family: "Inter", sans-serif;
+}
+
+.title-font-gilda h1,
+.title-font-gilda h2,
+.title-font-gilda h3 {
+  font-family: "Gilda Display", serif;
+}
+
+.title-font-fraunces h1,
+.title-font-fraunces h2,
+.title-font-fraunces h3 {
+  font-family: "Fraunces", serif;
+}
+
+.title-font-palatino h1,
+.title-font-palatino h2,
+.title-font-palatino h3 {
+  font-family: Palatino, serif;
+}
+
 .section-green .gold-dot {
   background: #cdb892;
 }
@@ -254,29 +297,95 @@ const customStyles = `
 
 .minimal-field {
   width: 100%;
-  border: 0;
-  border-bottom: 1px solid rgba(183,196,176,.55);
-  background: transparent;
-  padding: 1rem 0;
+  border: 1px solid rgba(183, 196, 176, 0.5);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.42);
+  padding: 1rem 1.1rem;
   outline: none;
-  color: #8f9f8a;
+  color: #7f8f78;
+  font-size: 16px;
+  transition:
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .minimal-field::placeholder {
-  color: rgba(143,159,138,.62);
+  color: rgba(127, 143, 120, 0.6);
 }
 
 .minimal-field:focus {
-  border-bottom-color: #cdb892;
+  border-color: #cdb892;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 0 4px rgba(205, 184, 146, 0.13);
+}
+
+.minimal-field[readonly] {
+  background: rgba(183, 196, 176, 0.12);
+  color: #8f9f8a;
+}
+
+.minimal-field,
+.minimal-select {
+  min-height: 52px;
 }
 
 .minimal-select {
-  appearance: none;
+  appearance: auto;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #8f9f8a 50%),
+    linear-gradient(135deg, #8f9f8a 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 14px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+@media (min-width: 768px) {
+  .minimal-select {
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, #8f9f8a 50%),
+      linear-gradient(135deg, #8f9f8a 50%, transparent 50%);
+    background-position:
+      calc(100% - 20px) 50%,
+      calc(100% - 14px) 50%;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+  }
 }
 
 .soft-line {
   height: 1px;
   background: linear-gradient(to right, transparent, rgba(183,196,176,.55), transparent);
+}
+
+.form-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: #8f9f8a;
+}
+
+.choice-button {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid rgba(183, 196, 176, 0.5);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.42);
+  padding: 1rem 1.1rem;
+  color: #7f8f78;
+  font-size: 16px;
+  text-align: center;
+}
+
+.choice-button-active {
+  border-color: #cdb892;
+  background: rgba(205, 184, 146, 0.15);
+  color: #a99672;
+  box-shadow: 0 0 0 4px rgba(205, 184, 146, 0.12);
 }
 `;
 
@@ -310,21 +419,34 @@ function useRevealOnScroll() {
 
 function SectionNav() {
   return (
-    <header className="sticky top-0 z-40 bg-[#fbfaf5]/80 px-6 py-5 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b7c4b0]">
-        <span>F · D</span>
-
-        <div className="flex gap-4 sm:gap-8">
-          <a href="#detalhes" className="transition hover:text-[#cdb892]">
+    <header className="sticky top-0 z-40 border-b border-[#cdb892]/25 bg-[#eef3ea]/92 px-4 py-4 shadow-[0_8px_26px_rgba(143,159,138,0.12)] backdrop-blur-xl">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f8f78]">
+        <div className="flex gap-2 sm:gap-3">
+          <a
+            href="#detalhes"
+            className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
+          >
             Detalhes
           </a>
-          <a href="#programa" className="transition hover:text-[#cdb892]">
+
+          <a
+            href="#programa"
+            className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
+          >
             Programa
           </a>
-          <a href="#locais" className="transition hover:text-[#cdb892]">
+
+          <a
+            href="#locais"
+            className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
+          >
             Locais
           </a>
-          <a href="#rsvp" className="transition hover:text-[#cdb892]">
+
+          <a
+            href="#rsvp"
+            className="rounded-full border border-[#cdb892]/45 px-3 py-2 text-[#cdb892] transition hover:bg-[#cdb892] hover:text-white"
+          >
             RSVP
           </a>
         </div>
@@ -362,7 +484,12 @@ export default function WeddingWebsiteV3() {
   const [guestsNames, setGuestsNames] = useState("");
   const [notes, setNotes] = useState("");
 
+  const [titleFont, setTitleFont] = useState("default");
+
   const weddingDate = "26 de setembro de 2026";
+
+  const [childrenUnder3, setChildrenUnder3] = useState(0);
+  const [childrenUnder5, setChildrenUnder5] = useState(0);
 
   useRevealOnScroll();
 
@@ -382,6 +509,7 @@ export default function WeddingWebsiteV3() {
 
     if (error) {
       console.error(error);
+      alert(error.message);
       return false;
     }
 
@@ -434,9 +562,26 @@ export default function WeddingWebsiteV3() {
   }, []);
 
   return (
-    <main className="page-bg min-h-screen text-[#b7c4b0]">
+    <main
+      className={`page-bg min-h-screen text-[#b7c4b0] title-font-${titleFont}`}
+    >
       <style>{customStyles}</style>
-
+      <div className="fixed bottom-6 right-6 z-50">
+        <select
+          value={titleFont}
+          onChange={(e) => setTitleFont(e.target.value)}
+          className="rounded-full border border-[#cdb892]/40 bg-[#fbfaf5]/90 px-4 py-2 text-xs tracking-[0.15em] text-[#8f9f8a] backdrop-blur-md"
+        >
+          <option value="default">Urbanist</option>
+          <option value="cormorant">Cormorant Garamond</option>
+          <option value="playfair">Playfair Display SC</option>
+          <option value="poppins">Poppins</option>
+          <option value="inter">Inter</option>
+          <option value="gilda">Gilda Display</option>
+          <option value="fraunces">Fraunces</option>
+          <option value="palatino">Palatino</option>
+        </select>
+      </div>
       {isMobile && !isOpen && (
         <section
           className={`fixed inset-0 z-50 overflow-hidden ${
@@ -469,7 +614,6 @@ export default function WeddingWebsiteV3() {
           </div>
         </section>
       )}
-
       <div
         className={`page-enter invitation-content ${
           isOpen || isOpening
@@ -479,15 +623,18 @@ export default function WeddingWebsiteV3() {
       >
         <section className="section-hero flex min-h-screen flex-col justify-center px-6 py-24 text-center">
           <div className="mx-auto max-w-6xl">
-            <p className="mb-8 text-xs font-semibold uppercase tracking-[0.5em] text-[#b7c4b0]">
-              Wedding celebration
-            </p>
+            <div className="mb-8 flex items-center justify-center gap-4 lg:justify-start">
+              <span className="h-px w-14 bg-[#c2a45f]" />
+              <p className="gold-accent text-xs uppercase tracking-[0.42em] text-[#9b7f42]">
+                Wedding invitation
+              </p>
+              <span className="h-px w-14 bg-[#c2a45f] lg:hidden" />
+            </div>
 
-            <h1 className="text-[4.8rem] font-extrabold uppercase leading-[0.82] tracking-[-0.09em] text-[#b7c4b0] md:text-[9rem] lg:text-[11rem]">
+            <h1 className="text-[4.8rem] font-extrabold  leading-[0.82] tracking-[0.02em] text-[#b7c4b0] md:text-[9rem] lg:text-[11rem]">
               Francisca
               <br />
-              <span className="gold-accent">&</span>
-              <br />
+              <h1 className="text-[#d1b676]">&</h1>
               Daniel
             </h1>
 
@@ -522,7 +669,7 @@ export default function WeddingWebsiteV3() {
 
         <SectionNav />
 
-        <section id="detalhes" className="section-light px-6 py-24 md:py-32">
+        {/* <section id="detalhes" className="section-light px-6 py-24 md:py-32">
           <div className="mx-auto max-w-6xl">
             <MinimalHeader
               eyebrow="O nosso dia"
@@ -550,7 +697,7 @@ export default function WeddingWebsiteV3() {
               />
             </div>
           </div>
-        </section>
+        </section> */}
 
         <section id="countdown" className="section-green px-6 py-24 md:py-32">
           <div className="mx-auto max-w-6xl">
@@ -569,19 +716,28 @@ export default function WeddingWebsiteV3() {
           </div>
         </section>
 
-        <section id="programa" className="section-cream px-6 py-24 md:py-32">
-          <div className="mx-auto max-w-6xl">
+        <section
+          id="programa"
+          className="section-cream relative overflow-hidden px-6 py-24 md:py-32"
+        >
+          <img
+            src={igrejaImg}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-20 w-[420px] max-w-[115%] -translate-x-1/2 opacity-[0.13] mix-blend-multiply md:right-10 md:left-auto md:top-16 md:w-[520px] md:translate-x-0 md:opacity-[0.07]"
+          />
+          <div className="relative z-10 mx-auto max-w-6xl">
+            {" "}
             <MinimalHeader
-              eyebrow="Programa"
+              eyebrow="Timeline"
               title="O ritmo do dia"
               text="Os principais momentos da celebração, para viverem connosco cada detalhe deste dia especial."
             />
-
             <div className="mt-20 space-y-12">
               <Timeline
                 time="11:00"
-                title="Chegada dos convidados"
-                text="Receção junto à cerimónia."
+                title="Chegada"
+                text="Receção dos convidados junto à Igreja."
               />
               <Timeline
                 time="11:30"
@@ -594,14 +750,24 @@ export default function WeddingWebsiteV3() {
                 text="Brindes, conversas e primeiros abraços."
               />
               <Timeline
-                time="20:00"
-                title="Jantar"
+                time="17:00"
+                title="Almoço"
                 text="À mesa, com todos os que fazem parte da nossa história."
               />
               <Timeline
-                time="22:30"
+                time="20:30"
+                title="Corte do bolo"
+                text="Um momento doce para celebrar juntos.."
+              />
+              <Timeline
+                time="21:30"
                 title="Festa"
                 text="Música, dança e memórias para guardar."
+              />
+              <Timeline
+                time="22:00"
+                title="Buffet"
+                text="Repor as energias para continuar a festa."
               />
             </div>
           </div>
@@ -642,7 +808,7 @@ export default function WeddingWebsiteV3() {
 
               <div className="gold-line mx-auto mt-6 max-w-[180px]" />
 
-              <h2 className="mt-8 text-5xl font-extrabold uppercase leading-[0.9] tracking-[-0.07em] text-[#b7c4b0] md:text-7xl">
+              <h2 className="mt-8 text-5xl font-extrabold  leading-[0.9] tracking-[-0.07em] text-[#b7c4b0] md:text-7xl">
                 Confirmem a vossa presença
               </h2>
 
@@ -653,7 +819,7 @@ export default function WeddingWebsiteV3() {
             </div>
 
             <form
-              className="mt-20 space-y-5"
+              className="mt-14 space-y-6 md:mt-20"
               onSubmit={async (e) => {
                 e.preventDefault();
 
@@ -673,6 +839,8 @@ export default function WeddingWebsiteV3() {
                   has_guests: hasGuests,
                   guests_count: hasGuests ? guestsCount : null,
                   guests_names: hasGuests ? guestsNames : null,
+                  children_under_3: hasGuests ? childrenUnder3 : null,
+                  children_under_5: hasGuests ? childrenUnder5 : null,
                   notes,
                 });
 
@@ -687,75 +855,186 @@ export default function WeddingWebsiteV3() {
                 );
               }}
             >
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                readOnly={!!guestName}
-                placeholder="Nome"
-                className="minimal-field"
-              />
+              {/* Nome */}
+              <div className="space-y-2">
+                <label className="form-label">Nome</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  readOnly={!!guestName}
+                  className="minimal-field"
+                />
+              </div>
 
-              <input
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder="Email ou contacto"
-                required
-                className="minimal-field"
-              />
+              {/* Contacto */}
+              <div className="space-y-2">
+                <label className="form-label">Email ou contacto</label>
+                <input
+                  value={contact}
+                  onChange={(e) => setContact(e.target.value)}
+                  required
+                  className="minimal-field"
+                />
+              </div>
 
-              <select
-                value={attending}
-                onChange={(e) => setAttending(e.target.value)}
-                className="minimal-field minimal-select"
-              >
-                <option value="yes">Vou estar presente</option>
-                <option value="no">Infelizmente não poderei ir</option>
-              </select>
+              {/* Presença mobile */}
+              <div className="md:hidden space-y-3">
+                <p className="form-label">Presença</p>
+                <div className="grid gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAttending("yes")}
+                    className={`choice-button ${attending === "yes" ? "choice-button-active" : ""}`}
+                  >
+                    Vou estar presente
+                  </button>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttending("no");
+                      setHasGuests(false);
+                    }}
+                    className={`choice-button ${attending === "no" ? "choice-button-active" : ""}`}
+                  >
+                    Não poderei ir
+                  </button>
+                </div>
+              </div>
+
+              {/* Presença desktop */}
+              <div className="hidden md:block space-y-2">
+                <label className="form-label">Presença</label>
+                <select
+                  value={attending}
+                  onChange={(e) => setAttending(e.target.value)}
+                  className="minimal-field minimal-select"
+                >
+                  <option value="yes">Vou estar presente</option>
+                  <option value="no">Não poderei ir</option>
+                </select>
+              </div>
+
+              {/* Acompanhantes mobile */}
               {attending === "yes" && (
                 <>
-                  <select
-                    onChange={(e) =>
-                      setHasGuests(e.target.value === "acompanha")
-                    }
-                    className="minimal-field minimal-select"
-                  >
-                    <option value="solo">Vou sozinho/a</option>
-                    <option value="acompanha">Vou levar acompanhantes</option>
-                  </select>
+                  <div className="md:hidden space-y-3">
+                    <p className="form-label">Acompanhantes</p>
 
+                    <div className="grid gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setHasGuests(false)}
+                        className={`choice-button ${!hasGuests ? "choice-button-active" : ""}`}
+                      >
+                        Vou sozinho/a
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setHasGuests(true)}
+                        className={`choice-button ${hasGuests ? "choice-button-active" : ""}`}
+                      >
+                        Vou levar acompanhantes
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Acompanhantes desktop */}
+                  <div className="hidden md:block space-y-2">
+                    <label className="form-label">Acompanhantes</label>
+                    <select
+                      value={hasGuests ? "acompanha" : "solo"}
+                      onChange={(e) =>
+                        setHasGuests(e.target.value === "acompanha")
+                      }
+                      className="minimal-field minimal-select"
+                    >
+                      <option value="solo">Vou sozinho/a</option>
+                      <option value="acompanha">Vou levar acompanhantes</option>
+                    </select>
+                  </div>
+
+                  {/* Campos extra */}
                   {hasGuests && (
                     <>
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={guestsCount}
-                        onChange={(e) => setGuestsCount(e.target.value)}
-                        placeholder="Número de acompanhantes"
-                        className="minimal-field"
-                      />
+                      <div className="space-y-2">
+                        <label className="form-label">
+                          Número total de acompanhantes
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={guestsCount}
+                          onChange={(e) => setGuestsCount(e.target.value)}
+                          className="minimal-field"
+                        />
+                      </div>
 
-                      <textarea
-                        value={guestsNames}
-                        onChange={(e) => setGuestsNames(e.target.value)}
-                        placeholder="Nome dos acompanhantes"
-                        className="minimal-field min-h-24"
-                      />
+                      <div className="space-y-2">
+                        <label className="form-label">
+                          Nome dos acompanhantes
+                        </label>
+                        <textarea
+                          value={guestsNames}
+                          onChange={(e) => setGuestsNames(e.target.value)}
+                          placeholder="Separar por vírgulas"
+                          className="minimal-field min-h-24"
+                        />
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="form-label">
+                            Crianças até 3 anos
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="10"
+                            value={childrenUnder3}
+                            placeholder="0"
+                            onChange={(e) => setChildrenUnder3(e.target.value)}
+                            className="minimal-field"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="form-label">
+                            Crianças até 5 anos
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="10"
+                            value={childrenUnder5}
+                            placeholder="0"
+                            onChange={(e) => setChildrenUnder5(e.target.value)}
+                            className="minimal-field"
+                          />
+                        </div>
+                      </div>
                     </>
                   )}
                 </>
               )}
 
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Mensagem, alergias ou notas importantes"
-                className="minimal-field min-h-28"
-              />
+              {/* Notas */}
+              <div className="space-y-2">
+                <label className="form-label">
+                  Mensagem / restrições alimentares
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="minimal-field min-h-28"
+                />
+              </div>
 
+              {/* Feedback */}
               {submitStatus && (
-                <p className="pt-6 text-center text-sm font-semibold text-[#8f9f8a]">
+                <p className="pt-4 text-center text-sm font-semibold text-[#8f9f8a]">
                   {submitStatus === "attending" &&
                     "Que alegria! A vossa presença ficou confirmada. 💛"}
                   {submitStatus === "not-attending" &&
@@ -767,13 +1046,57 @@ export default function WeddingWebsiteV3() {
                 </p>
               )}
 
-              <div className="pt-10 text-center">
+              {/* Botão */}
+              <div className="pt-6 text-center">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-full border border-[#cdb892] px-10 py-4 text-xs font-bold uppercase tracking-[0.3em] text-[#cdb892] transition hover:bg-[#cdb892] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="
+    relative overflow-hidden
+    cursor-pointer
+    rounded-full
+    border border-[#cdb892]
+    px-10 py-4
+    text-xs font-bold uppercase tracking-[0.3em]
+    text-[#cdb892]
+
+    transition-all duration-300 ease-[cubic-bezier(.22,1,.36,1)]
+
+    hover:bg-[#cdb892]
+    hover:text-white
+    hover:shadow-[0_8px_30px_rgba(205,184,146,0.35)]
+    hover:-translate-y-[2px]
+
+    active:translate-y-[0px]
+    active:shadow-[0_4px_12px_rgba(205,184,146,0.25)]
+
+    focus:outline-none
+    focus:ring-2
+    focus:ring-[#cdb892]/40
+    focus:ring-offset-2
+    focus:ring-offset-[#fbfaf5]
+
+    disabled:cursor-not-allowed
+    disabled:opacity-60
+    disabled:hover:translate-y-0
+    disabled:hover:shadow-none
+  "
                 >
-                  {isSubmitting ? "A enviar..." : "Enviar confirmação"}
+                  <span className="relative z-10">
+                    {isSubmitting ? "A enviar..." : "Enviar confirmação"}
+                  </span>
+
+                  {/* brilho suave no hover */}
+                  <span
+                    className="
+    pointer-events-none
+    absolute inset-0
+    opacity-0
+    transition-opacity duration-500
+    hover:opacity-100
+    bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent)]
+  "
+                  />
                 </button>
               </div>
             </form>
@@ -801,7 +1124,9 @@ export default function WeddingWebsiteV3() {
 function HeroInfo({ label, value }) {
   return (
     <div>
-      <p className="text-[#8f9f8a]/60">{label}</p>
+      <p className="text-[#d1b676] text-xs font-semibold uppercase tracking-[0.34em]">
+        {label}
+      </p>
       <p className="mt-3 text-base tracking-[0.18em] text-[#8f9f8a]">{value}</p>
     </div>
   );
@@ -816,7 +1141,7 @@ function MinimalHeader({ eyebrow, title, text }) {
 
       <div className="gold-line mx-auto mt-6 max-w-[180px]" />
 
-      <h2 className="mt-8 text-5xl font-extrabold uppercase leading-[0.9] tracking-[-0.07em] text-[#b7c4b0] md:text-7xl">
+      <h2 className="mt-8 text-5xl font-extrabold leading-[0.9] tracking-[-0.06em] text-[#b7c4b0] md:text-7xl">
         {title}
       </h2>
 
@@ -827,25 +1152,25 @@ function MinimalHeader({ eyebrow, title, text }) {
   );
 }
 
-function MinimalDetail({ number, title, text }) {
-  return (
-    <div className="reveal-on-scroll mx-auto grid max-w-4xl gap-6 md:grid-cols-[120px_1fr]">
-      <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#b7c4b0]/70">
-        {number}
-      </p>
+// function MinimalDetail({ number, title, text }) {
+//   return (
+//     <div className="reveal-on-scroll mx-auto grid max-w-4xl gap-6 md:grid-cols-[120px_1fr]">
+//       <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#b7c4b0]/70">
+//         {number}
+//       </p>
 
-      <div>
-        <h3 className="text-4xl font-extrabold uppercase leading-none tracking-[-0.06em] text-[#b7c4b0] md:text-5xl">
-          {title}
-        </h3>
+//       <div>
+//         <h3 className="text-4xl font-extrabold uppercase leading-none tracking-[-0.06em] text-[#b7c4b0] md:text-5xl">
+//           {title}
+//         </h3>
 
-        <p className="mt-5 max-w-2xl text-lg font-light leading-8 text-[#8f9f8a]">
-          {text}
-        </p>
-      </div>
-    </div>
-  );
-}
+//         <p className="mt-5 max-w-2xl text-lg font-light leading-8 text-[#8f9f8a]">
+//           {text}
+//         </p>
+//       </div>
+//     </div>
+//   );
+// }
 
 function CountdownBox({ number, label }) {
   return (
@@ -870,9 +1195,9 @@ function Timeline({ time, title, text }) {
       </p>
 
       <div>
-        <h3 className="text-3xl font-extrabold uppercase leading-none tracking-[-0.05em] text-[#b7c4b0] md:text-4xl">
+        <span className="text-xl font-semibold uppercase tracking-[0.5em]  text-[#cdb892] ">
           {title}
-        </h3>
+        </span>
 
         <p className="mt-4 max-w-2xl text-lg font-light leading-8 text-[#8f9f8a]">
           {text}
@@ -889,7 +1214,7 @@ function VenueText({ label, title, text, cta }) {
         {label}
       </p>
 
-      <h3 className="mt-6 text-4xl font-extrabold uppercase leading-none tracking-[-0.06em] text-[#b7c4b0] md:text-5xl">
+      <h3 className="mt-6 text-4xl font-extrabold  leading-none tracking-[-0.06em] text-[#b7c4b0] md:text-5xl">
         {title}
       </h3>
 
