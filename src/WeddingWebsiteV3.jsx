@@ -963,7 +963,7 @@ export default function WeddingWebsiteV3() {
             <div className="mt-20 grid gap-16 md:grid-cols-2">
               <VenueText
                 label="Cerimónia"
-                title="Paróquia de Santa Iria da Azóia"
+                title="Igreja Matriz de Santa Iria da Azóia"
                 text="O lugar onde vamos dar início a este novo capítulo, rodeados pela nossa família e amigos."
                 cta="Ver localização"
               />

@@ -394,7 +394,7 @@ export default function WeddingWebsite() {
               <FeatureCard
                 number="01"
                 title="Cerimónia"
-                text="Às 11h30, na Paróquia de Santa Iria da Azóia, onde vamos trocar os nossos votos rodeados por quem mais amamos."
+                text="Às 11h30, na Igreja Matriz de Santa Iria da Azóia, onde vamos trocar os nossos votos rodeados por quem mais amamos."
               />
               <FeatureCard
                 number="02"
@@ -497,7 +497,7 @@ export default function WeddingWebsite() {
             <div className="grid gap-4">
               <VenueCard
                 label="Cerimónia"
-                title="Paróquia de Santa Iria da Azóia"
+                title="Igreja Matriz de Santa Iria da Azóia"
                 text="O lugar onde vamos dar início a este novo capítulo, rodeados pela nossa família e amigos."
                 cta="Ver localização"
               />
