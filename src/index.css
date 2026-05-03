@@ -1,10 +1,9 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Parisienne&display=swap");
-
+@import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap");
 body {
   /* font-family: "Inter", sans-serif; */
 }
 
-.handwritten {
-  font-family: "Parisienne", cursive;
+.urbanist {
+  font-family: "Urbanist", sans-serif;
 }

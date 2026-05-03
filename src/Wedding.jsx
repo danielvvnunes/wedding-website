@@ -550,8 +550,8 @@ export default function WeddingWebsite() {
                   <span className="h-px w-14 bg-[#c2a45f] lg:hidden" />
                 </div>
 
-                <h1 className="handwritten text-7xl leading-none text-[#3b3228] md:text-9xl lg:text-[10rem]">
-                  <span className="script-shadow block">Francisca</span>
+                <h1 className="font-urbanist font-bold  text-7xl leading-none text-[#3b3228] md:text-9xl lg:text-[10rem]">
+                  Francisca
                   <span className="gold-glow mt-3 block">& Daniel</span>
                 </h1>
 
@@ -621,7 +621,7 @@ export default function WeddingWebsite() {
                       Save the date
                     </p>
 
-                    <p className="gold-shine not-even:handwritten mt-3 text-5xl leading-none text-[#c2a45f] md:text-6xl">
+                    <p className="gold-shine not-even:urbanist mt-3 text-5xl leading-none text-[#c2a45f] md:text-6xl">
                       26 de setembro
                     </p>
 
@@ -654,7 +654,7 @@ export default function WeddingWebsite() {
                   O nosso dia
                 </p>
 
-                <h2 className="handwritten text-5xl leading-tight md:text-7xl">
+                <h2 className="font-urbanist font-bold  text-5xl leading-tight md:text-7xl">
                   Uma celebração feita de detalhes.
                 </h2>
 
@@ -707,7 +707,7 @@ export default function WeddingWebsite() {
                 Countdown
               </p>
 
-              <h2 className="handwritten text-5xl leading-tight md:text-7xl">
+              <h2 className="font-urbanist font-bold  text-5xl leading-tight md:text-7xl">
                 Estamos quase a dizer “sim”.
               </h2>
 
@@ -761,7 +761,7 @@ export default function WeddingWebsite() {
                 Programa
               </p>
 
-              <h2 className="handwritten text-5xl leading-tight md:text-7xl">
+              <h2 className="font-urbanist font-bold  text-5xl leading-tight md:text-7xl">
                 O ritmo do dia
               </h2>
 
@@ -834,7 +834,7 @@ export default function WeddingWebsite() {
                 Locais
               </p>
 
-              <h2 className="handwritten text-5xl leading-tight md:text-7xl">
+              <h2 className="font-urbanist font-bold  text-5xl leading-tight md:text-7xl">
                 Onde tudo acontece
               </h2>
 
@@ -894,7 +894,7 @@ export default function WeddingWebsite() {
                 <p className="mb-4 text-xs uppercase tracking-[0.45em] text-[#d6b98c]">
                   RSVP
                 </p>
-                <h2 className="handwritten text-5xl leading-tight md:text-7xl">
+                <h2 className="font-urbanist font-bold  text-5xl leading-tight md:text-7xl">
                   Confirmem a vossa presença
                 </h2>
                 <div className="mx-auto my-8 h-px w-28 bg-[#d6b98c]" />
@@ -1098,7 +1098,7 @@ function FeatureCard({ number, icon, title, text }) {
         {icon}
       </div>
 
-      <h3 className="handwritten text-4xl md:text-5xl">{title}</h3>
+      <h3 className="font-urbanist font-bold  text-4xl md:text-5xl">{title}</h3>
 
       <p className="mt-5 flex-1 leading-7 text-[#6c5b4a]">{text}</p>
 
@@ -1161,7 +1161,7 @@ function Timeline({ time, icon, title, text, side = "left" }) {
           </span>
         </div>
 
-        <h3 className="handwritten mt-2 text-4xl leading-none text-[#3b3228]">
+        <h3 className="font-urbanist font-bold  mt-2 text-4xl leading-none text-[#3b3228]">
           {title}
         </h3>
 
@@ -1216,7 +1216,7 @@ function TimelineContent({ align, time, icon, title, text }) {
         </span>
       </div>
 
-      <h3 className="handwritten mt-2 text-5xl leading-none text-[#3b3228]">
+      <h3 className="font-urbanist font-bold  mt-2 text-5xl leading-none text-[#3b3228]">
         {title}
       </h3>
 
