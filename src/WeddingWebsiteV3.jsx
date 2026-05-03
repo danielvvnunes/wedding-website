@@ -199,48 +199,6 @@ const customStyles = `
   color: #8f9f8a;
 }
 
-.title-font-cormorant h1,
-.title-font-cormorant h2,
-.title-font-cormorant h3 {
-  font-family: "Cormorant Garamond", serif;
-}
-
-.title-font-playfair h1,
-.title-font-playfair h2,
-.title-font-playfair h3 {
-  font-family: "Playfair Display SC", serif;
-}
-
-.title-font-poppins h1,
-.title-font-poppins h2,
-.title-font-poppins h3 {
-  font-family: "Poppins", sans-serif;
-}
-
-.title-font-inter h1,
-.title-font-inter h2,
-.title-font-inter h3 {
-  font-family: "Inter", sans-serif;
-}
-
-.title-font-gilda h1,
-.title-font-gilda h2,
-.title-font-gilda h3 {
-  font-family: "Gilda Display", serif;
-}
-
-.title-font-fraunces h1,
-.title-font-fraunces h2,
-.title-font-fraunces h3 {
-  font-family: "Fraunces", serif;
-}
-
-.title-font-palatino h1,
-.title-font-palatino h2,
-.title-font-palatino h3 {
-  font-family: Palatino, serif;
-}
-
 .section-green .gold-dot {
   background: #cdb892;
 }
@@ -484,8 +442,6 @@ export default function WeddingWebsiteV3() {
   const [guestsNames, setGuestsNames] = useState("");
   const [notes, setNotes] = useState("");
 
-  const [titleFont, setTitleFont] = useState("default");
-
   const weddingDate = "26 de setembro de 2026";
 
   const [childrenUnder3, setChildrenUnder3] = useState(0);
@@ -562,26 +518,9 @@ export default function WeddingWebsiteV3() {
   }, []);
 
   return (
-    <main
-      className={`page-bg min-h-screen text-[#b7c4b0] title-font-${titleFont}`}
-    >
+    <main className="page-bg min-h-screen text-[#b7c4b0]">
       <style>{customStyles}</style>
-      <div className="fixed bottom-6 right-6 z-50">
-        <select
-          value={titleFont}
-          onChange={(e) => setTitleFont(e.target.value)}
-          className="rounded-full border border-[#cdb892]/40 bg-[#fbfaf5]/90 px-4 py-2 text-xs tracking-[0.15em] text-[#8f9f8a] backdrop-blur-md"
-        >
-          <option value="default">Urbanist</option>
-          <option value="cormorant">Cormorant Garamond</option>
-          <option value="playfair">Playfair Display SC</option>
-          <option value="poppins">Poppins</option>
-          <option value="inter">Inter</option>
-          <option value="gilda">Gilda Display</option>
-          <option value="fraunces">Fraunces</option>
-          <option value="palatino">Palatino</option>
-        </select>
-      </div>
+
       {isMobile && !isOpen && (
         <section
           className={`fixed inset-0 z-50 overflow-hidden ${
@@ -727,7 +666,6 @@ export default function WeddingWebsiteV3() {
             className="pointer-events-none absolute left-1/2 top-20 w-[420px] max-w-[115%] -translate-x-1/2 opacity-[0.13] mix-blend-multiply md:right-10 md:left-auto md:top-16 md:w-[520px] md:translate-x-0 md:opacity-[0.07]"
           />
           <div className="relative z-10 mx-auto max-w-6xl">
-            {" "}
             <MinimalHeader
               eyebrow="Timeline"
               title="O ritmo do dia"
@@ -1141,7 +1079,7 @@ function MinimalHeader({ eyebrow, title, text }) {
 
       <div className="gold-line mx-auto mt-6 max-w-[180px]" />
 
-      <h2 className="mt-8 text-5xl font-extrabold leading-[0.9] tracking-[-0.06em] text-[#b7c4b0] md:text-7xl">
+      <h2 className="mt-8 text-5xl font-extrabold leading-[0.9] tracking-[-0.02em] text-[#b7c4b0] md:text-7xl">
         {title}
       </h2>
 
