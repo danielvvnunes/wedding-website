@@ -110,12 +110,12 @@ export default function AccommodationAndLocations() {
           <div className="gold-line mx-auto mt-6 max-w-[180px]" />
 
           <h1 className="mt-8 text-5xl font-extrabold leading-[0.9] tracking-[-0.03em] text-[#b7c4b0] md:text-7xl">
-            Alojamento e localizações
+            Localizações
           </h1>
 
           <p className="mx-auto mt-8 max-w-2xl text-lg font-light leading-8">
-            Para vos ajudar a organizar a viagem, reunimos algumas sugestões de
-            alojamento e informações sobre os locais principais do nosso dia.
+            Para vos ajudar a organizar a viagem, reunimos algumas informações
+            sobre os locais principais do nosso dia.
           </p>
         </div>
       </section>
@@ -139,7 +139,7 @@ export default function AccommodationAndLocations() {
           <SectionTitle
             eyebrow="Cerimónia"
             title="A Igreja"
-            text="A cerimónia será na igreja, em Santa Iria da Azóia. Sugerimos chegarem com alguma antecedência para estacionar com calma e entrar sem pressas."
+            text="A cerimónia terá lugar na igreja, em Santa Iria da Azóia. Sugerimos que cheguem com alguma antecedência, para estacionarem com tranquilidade e poderem entrar sem pressas."
           />
 
           <LocationBlock
