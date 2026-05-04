@@ -495,7 +495,7 @@ function getGuestMessage(guest) {
       <span className="gold-accent font-semibold text-[1.1em]">
         {guest.greeting} {formatNames(guest.names)}
       </span>
-      , queríamos muito que estivessem presentes para celebrar este dia
+      , gastaríamos muito que estivessem presentes para celebrar este dia
       connosco.
     </>
   );
@@ -910,7 +910,7 @@ export default function WeddingWebsiteV3() {
                 time="11:00"
                 title="Chegada"
                 image={IgrejaImg}
-                text="Receção dos convidados junto à Igreja."
+                text="Receção aos convidados junto à Igreja."
               />
               <Timeline
                 time="11:30"
@@ -925,7 +925,7 @@ export default function WeddingWebsiteV3() {
                 text="Brindes, conversas e primeiros abraços."
               />
               <Timeline
-                time="17:00"
+                time="16:00"
                 title="Almoço"
                 image={AlmoçoImg}
                 text="À mesa, com todos os que fazem parte da nossa história."
