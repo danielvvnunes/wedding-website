@@ -158,7 +158,7 @@ export default function AccommodationAndLocations() {
           <SectionTitle
             eyebrow="Celebração"
             title="A quinta"
-            text="Depois da cerimónia, seguimos para a quinta, onde decorrerá o cocktail, a refeição e a festa. Mais perto da data partilharemos detalhes adicionais, caso seja necessário."
+            text="Após a cerimónia, seguiremos para a quinta, onde terão lugar o cocktail, a refeição e a festa. Mais próximo da data, partilharemos informações adicionais, caso sejam necessárias."
           />
 
           <LocationBlock
