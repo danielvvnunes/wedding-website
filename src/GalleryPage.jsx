@@ -259,7 +259,7 @@ export default function GalleryPage() {
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Ex: Maria e Tiago"
+                placeholder="Ex: Ana e João"
                 className="w-full rounded-[1.25rem] border border-[#b7c4b0]/50 bg-white/50 px-5 py-4 text-base text-[#7f8f78] outline-none transition focus:border-[#cdb892] focus:bg-white/80 focus:ring-4 focus:ring-[#cdb892]/15"
               />
             </div>

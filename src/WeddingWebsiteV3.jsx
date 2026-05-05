@@ -314,6 +314,21 @@ const customStyles = `
   min-height: 52px;
 }
 
+.form-submitted .minimal-field:invalid,
+.form-submitted .minimal-select:invalid {
+  border-color: #e87c7c;
+  background-color: rgba(232, 124, 124, 0.05);
+}
+
+.form-submitted .minimal-field:invalid:focus,
+.form-submitted .minimal-select:invalid:focus {
+  box-shadow: 0 0 0 4px rgba(232, 124, 124, 0.15);
+}
+.minimal-field:invalid:focus,
+.minimal-select:invalid:focus {
+  box-shadow: 0 0 0 4px rgba(232, 124, 124, 0.15);
+}
+
 .minimal-select {
   appearance: auto;
   background-image:
@@ -575,6 +590,7 @@ export default function WeddingWebsiteV3() {
   const [isOpening, setIsOpening] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasTriedSubmit, setHasTriedSubmit] = useState(false);
 
   const weddingDateTime = new Date("2026-09-26T11:30:00");
   const [timeLeft, setTimeLeft] = useState(getTimeRemaining);
@@ -748,6 +764,45 @@ export default function WeddingWebsiteV3() {
 
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [hasSubmittedSuccessfully, setHasSubmittedSuccessfully] =
+    useState(false);
+
+  async function handleConfirmedSubmit() {
+    if (isSubmitting || hasSubmittedSuccessfully) return;
+
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    const attendingPeople = people.filter(
+      (person) => person.attending === "yes",
+    );
+
+    const success = await submitRSVP({
+      guest_slug: guestSlug,
+      people,
+      attending_count: attendingPeople.length,
+      not_attending_count: people.length - attendingPeople.length,
+      notes,
+    });
+
+    setIsSubmitting(false);
+    setIsConfirmModalOpen(false);
+
+    setSubmitStatus(
+      success
+        ? attendingPeople.length > 0
+          ? "attending"
+          : "not-attending"
+        : "error",
+    );
+
+    if (success) {
+      setHasSubmittedSuccessfully(true);
+      localStorage.removeItem(storageKey);
+    }
+  }
 
   return (
     <main className="page-bg min-h-screen text-[#b7c4b0]">
@@ -970,7 +1025,7 @@ export default function WeddingWebsiteV3() {
 
               <VenueText
                 label="Celebração"
-                title="Cocktail, jantar e festa"
+                title="Quinta do Coração"
                 text="Depois da cerimónia, continuamos o dia com brindes, comida, música e muitas memórias para guardar."
                 cta="Mais detalhes em breve"
               />
@@ -998,45 +1053,17 @@ export default function WeddingWebsiteV3() {
             </div>
 
             <form
-              className="mt-14 space-y-6 md:mt-20"
-              onSubmit={async (e) => {
+              className={`mt-14 space-y-6 md:mt-20 ${
+                hasTriedSubmit ? "form-submitted" : ""
+              }`}
+              onSubmit={(e) => {
+                setHasTriedSubmit(true);
                 e.preventDefault();
 
-                const hasAnyContact = people.some(
-                  (person) => person.email.trim() || person.phone.trim(),
-                );
+                if (isSubmitting || hasSubmittedSuccessfully) return;
 
-                if (!hasAnyContact) {
-                  setSubmitStatus("missing-contact");
-                  return;
-                }
-                setIsSubmitting(true);
                 setSubmitStatus(null);
-
-                const attendingPeople = people.filter(
-                  (person) => person.attending === "yes",
-                );
-
-                const success = await submitRSVP({
-                  guest_slug: guestSlug,
-                  people,
-                  attending_count: attendingPeople.length,
-                  not_attending_count: people.length - attendingPeople.length,
-                  notes,
-                });
-
-                setIsSubmitting(false);
-
-                setSubmitStatus(
-                  success
-                    ? attendingPeople.length > 0
-                      ? "attending"
-                      : "not-attending"
-                    : "error",
-                );
-                if (success) {
-                  localStorage.removeItem(storageKey);
-                }
+                setIsConfirmModalOpen(true);
               }}
             >
               <div className="space-y-5">
@@ -1061,8 +1088,19 @@ export default function WeddingWebsiteV3() {
                       {people.length > 1 && (
                         <button
                           type="button"
+                          disabled={isSubmitting || hasSubmittedSuccessfully}
                           onClick={() => removePerson(index)}
-                          className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8f9f8a] transition hover:text-[#cdb892]"
+                          className="
+    text-[10px] font-bold uppercase tracking-[0.2em]
+    text-[#8f9f8a]
+    transition
+
+    hover:text-[#cdb892]
+
+    disabled:opacity-40
+    disabled:cursor-not-allowed
+    disabled:hover:text-[#8f9f8a]
+  "
                         >
                           Remover
                         </button>
@@ -1071,13 +1109,32 @@ export default function WeddingWebsiteV3() {
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2 md:col-span-2">
-                        <label className="form-label">Nome</label>
+                        <label className="form-label">
+                          Nome <span className="text-[#cdb892]">*</span>
+                        </label>{" "}
                         <input
+                          required
                           value={person.name}
+                          onInvalid={(e) =>
+                            e.target.setCustomValidity(
+                              "Por favor preenche o nome",
+                            )
+                          }
+                          onInput={(e) => e.target.setCustomValidity("")}
+                          disabled={isSubmitting || hasSubmittedSuccessfully}
                           onChange={(e) =>
                             updatePerson(index, "name", e.target.value)
                           }
-                          className="minimal-field"
+                          className="
+  minimal-field
+
+  disabled:opacity-50
+  disabled:cursor-not-allowed
+  disabled:bg-[#f5f5f5]
+  disabled:text-[#8f9f8a]
+
+
+"
                         />
                       </div>
 
@@ -1085,21 +1142,38 @@ export default function WeddingWebsiteV3() {
                         <label className="form-label">Email</label>
                         <input
                           value={person.email}
+                          disabled={isSubmitting || hasSubmittedSuccessfully}
                           onChange={(e) =>
                             updatePerson(index, "email", e.target.value)
                           }
-                          className="minimal-field"
+                          className="
+    minimal-field
+    disabled:opacity-50
+    disabled:cursor-not-allowed
+    disabled:bg-[#f5f5f5]
+    disabled:text-[#8f9f8a]
+  "
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label className="form-label">Contacto</label>
+                        <label className="form-label">
+                          Contacto <span className="text-[#cdb892]">*</span>
+                        </label>{" "}
                         <input
+                          required
                           value={person.phone}
+                          disabled={isSubmitting || hasSubmittedSuccessfully}
                           onChange={(e) =>
                             updatePerson(index, "phone", e.target.value)
                           }
-                          className="minimal-field"
+                          className="
+    minimal-field
+    disabled:opacity-50
+    disabled:cursor-not-allowed
+    disabled:bg-[#f5f5f5]
+    disabled:text-[#8f9f8a]
+  "
                         />
                       </div>
 
@@ -1107,10 +1181,19 @@ export default function WeddingWebsiteV3() {
                         <label className="form-label">Presença</label>
                         <select
                           value={person.attending}
+                          disabled={isSubmitting || hasSubmittedSuccessfully}
                           onChange={(e) =>
                             updatePerson(index, "attending", e.target.value)
                           }
-                          className="minimal-field minimal-select"
+                          className="
+    minimal-field minimal-select
+
+    disabled:opacity-50
+    disabled:cursor-not-allowed
+    disabled:bg-[#f5f5f5]
+    disabled:text-[#8f9f8a]
+    disabled:border-[#8f9f8a]/20
+  "
                         >
                           <option value="yes">Vai estar presente</option>
                           <option value="no">Não poderá ir</option>
@@ -1121,10 +1204,19 @@ export default function WeddingWebsiteV3() {
                         <label className="form-label">Tipo</label>
                         <select
                           value={person.ageGroup}
+                          disabled={isSubmitting || hasSubmittedSuccessfully}
                           onChange={(e) =>
                             updatePerson(index, "ageGroup", e.target.value)
                           }
-                          className="minimal-field minimal-select"
+                          className="
+    minimal-field minimal-select
+
+    disabled:opacity-50
+    disabled:cursor-not-allowed
+    disabled:bg-[#f5f5f5]
+    disabled:text-[#8f9f8a]
+    disabled:border-[#8f9f8a]/20
+  "
                         >
                           <option value="adult">Adulto</option>
                           <option value="child_under_3">Bebé (0-3 anos)</option>
@@ -1139,12 +1231,19 @@ export default function WeddingWebsiteV3() {
                           Restrições alimentares
                         </label>
                         <input
+                          disabled={isSubmitting || hasSubmittedSuccessfully}
                           value={person.dietary}
                           onChange={(e) =>
                             updatePerson(index, "dietary", e.target.value)
                           }
                           placeholder="Ex: vegetariano, alergias, sem glúten..."
-                          className="minimal-field"
+                          className="
+    minimal-field
+    disabled:opacity-50
+    disabled:cursor-not-allowed
+    disabled:bg-[#f5f5f5]
+    disabled:text-[#8f9f8a]
+  "
                         />
                       </div>
                     </div>
@@ -1154,8 +1253,21 @@ export default function WeddingWebsiteV3() {
                 <div className="text-center">
                   <button
                     type="button"
+                    disabled={isSubmitting || hasSubmittedSuccessfully}
                     onClick={addPerson}
-                    className="rounded-full border border-[#8f9f8a]/55 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-[#8f9f8a] transition hover:bg-[#8f9f8a] hover:text-white"
+                    className="
+    rounded-full border border-[#8f9f8a]/55 
+    px-6 py-3 
+    text-xs font-bold uppercase tracking-[0.24em] 
+    text-[#8f9f8a] 
+    transition 
+    hover:bg-[#8f9f8a] hover:text-white
+
+    disabled:cursor-not-allowed
+    disabled:opacity-40
+    disabled:hover:bg-transparent
+    disabled:hover:text-[#8f9f8a]
+  "
                   >
                     + Adicionar pessoa
                   </button>
@@ -1169,8 +1281,17 @@ export default function WeddingWebsiteV3() {
                 </label>
                 <textarea
                   value={notes}
+                  disabled={isSubmitting || hasSubmittedSuccessfully}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="minimal-field min-h-28"
+                  className="
+    minimal-field min-h-28
+
+    disabled:opacity-50
+    disabled:cursor-not-allowed
+    disabled:bg-[#f5f5f5]
+    disabled:text-[#8f9f8a]
+    disabled:border-[#8f9f8a]/20
+  "
                 />
               </div>
 
@@ -1192,10 +1313,9 @@ export default function WeddingWebsiteV3() {
               <div className="pt-6 text-center">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || hasSubmittedSuccessfully}
                   className="
     relative overflow-hidden
-    cursor-pointer
     rounded-full
     border border-[#cdb892]
     px-10 py-4
@@ -1220,24 +1340,30 @@ export default function WeddingWebsiteV3() {
 
     disabled:cursor-not-allowed
     disabled:opacity-60
-    disabled:hover:translate-y-0
+    disabled:hover:bg-transparent
+    disabled:hover:text-[#cdb892]
     disabled:hover:shadow-none
+    disabled:hover:translate-y-0
   "
                 >
                   <span className="relative z-10">
-                    {isSubmitting ? "A enviar..." : "Enviar confirmação"}
+                    {isSubmitting
+                      ? "A enviar..."
+                      : hasSubmittedSuccessfully
+                        ? "Confirmação enviada"
+                        : "Enviar confirmação"}
                   </span>
 
-                  {/* brilho suave no hover */}
+                  {/* brilho */}
                   <span
-                    className="
-    pointer-events-none
-    absolute inset-0
-    opacity-0
-    transition-opacity duration-500
-    hover:opacity-100
-    bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent)]
-  "
+                    className={`
+      pointer-events-none
+      absolute inset-0
+      opacity-0
+      transition-opacity duration-500
+      bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent)]
+      ${isSubmitting || hasSubmittedSuccessfully ? "" : "hover:opacity-100"}
+    `}
                   />
                 </button>
               </div>
@@ -1322,6 +1448,78 @@ export default function WeddingWebsiteV3() {
           </div>
         </footer>
       </div>
+
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 z-[999] flex items-start justify-center overflow-y-auto bg-[#2f352d]/45 px-5 py-8 backdrop-blur-sm sm:items-center sm:py-10">
+          <div className="my-auto w-full max-w-lg rounded-[2rem] border border-[#cdb892]/40 bg-[#fbfaf5] p-7 text-center shadow-[0_24px_80px_rgba(47,53,45,0.22)]">
+            <p className="gold-accent text-xs font-bold uppercase tracking-[0.35em]">
+              Confirmar envio
+            </p>
+
+            <h3 className="mt-5 text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
+              Está tudo correto?
+            </h3>
+
+            <p className="mx-auto mt-4 max-w-md text-sm font-light leading-7 text-[#8f9f8a]">
+              Vais enviar a confirmação de presença para{" "}
+              <strong className="font-bold text-[#cdb892]">
+                {people.length} {people.length === 1 ? "pessoa" : "pessoas"}
+              </strong>
+              . Depois de enviado, o formulário ficará bloqueado para evitar
+              envios duplicados.
+            </p>
+
+            <div className="mt-6 rounded-[1.5rem] border border-[#b7c4b0]/30 bg-white/45 p-4 text-left">
+              {people.map((person, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between gap-4 border-b border-[#b7c4b0]/20 py-2 last:border-b-0"
+                >
+                  <span className="text-sm font-semibold text-[#7f8f78]">
+                    {person.name || `Pessoa ${index + 1}`}
+                  </span>
+
+                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#cdb892]">
+                    {person.attending === "yes" ? "Presente" : "Não vai"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="
+            rounded-full border border-[#8f9f8a]/45 px-7 py-3
+            text-xs font-bold uppercase tracking-[0.24em] text-[#8f9f8a]
+            transition hover:bg-[#8f9f8a] hover:text-white
+            disabled:cursor-not-allowed disabled:opacity-40
+          "
+              >
+                Rever
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleConfirmedSubmit}
+                className="
+            rounded-full border border-[#cdb892] bg-[#cdb892] px-7 py-3
+            text-xs font-bold uppercase tracking-[0.24em] text-white
+            transition hover:-translate-y-[2px]
+            hover:shadow-[0_8px_30px_rgba(205,184,146,0.35)]
+            disabled:cursor-not-allowed disabled:opacity-60
+            disabled:hover:translate-y-0 disabled:hover:shadow-none
+          "
+              >
+                {isSubmitting ? "A enviar..." : "Sim, enviar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

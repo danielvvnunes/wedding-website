@@ -503,7 +503,7 @@ export default function WeddingWebsite() {
               />
               <VenueCard
                 label="Celebração"
-                title="Cocktail, jantar e festa"
+                title="Quinta do coração"
                 text="Depois da cerimónia, continuamos o dia com brindes, comida, música e muitas memórias para guardar."
                 cta="Mais detalhes em breve"
               />

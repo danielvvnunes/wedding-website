@@ -866,15 +866,12 @@ export default function WeddingWebsite() {
                 title={
                   <>
                     <span className="md:hidden">
-                      Cocktail,
+                      Quinta,
                       <br />
-                      jantar,
-                      <br />e festa!
+                      do coração
                     </span>
 
-                    <span className="hidden md:inline">
-                      Cocktail, jantar e festa!
-                    </span>
+                    <span className="hidden md:inline">Quinta do coração</span>
                   </>
                 }
                 text="Depois da cerimónia, continuamos o dia com brindes, comida, música e muitas memórias para guardar."
