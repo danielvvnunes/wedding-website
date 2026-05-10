@@ -422,7 +422,7 @@ const guestList = [
   [["Avô Albano"], "Querido", "singular"],
   [["Tio Zé", "Gina", "Vicente"], "Queridos", "plural"],
   [["Padrinho Jorge", "Tia Sandra", "Primo Duarte"], "Queridos", "plural"],
-  [["Tia Maria Luís", "Vítor", "Primo Martim"], "Queridos", "plural"],
+  [["Prima Maria Luís", "Vítor", "Primo Martim"], "Queridos", "plural"],
   [["Prima Leonor", "Samuel"], "Queridos", "plural"],
   [["Duarte"], "Primo", "singular"],
   [["Tia Elsa", "Primo João"], "Queridos", "plural"],
