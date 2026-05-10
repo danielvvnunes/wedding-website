@@ -442,7 +442,7 @@ const guestList = [
   [["Almeirante"], "Amigo", "singular"],
   [["Tiago"], "Amigo", "singular"],
   [["Zé"], "Amigo", "singular"],
-  [["Patrícia"], "Amiga", "singular"],
+  [["Patrícia e Marisa"], "Queridas", "plural"],
   [["Ana Margarida", "António"], "Caros", "plural"],
   [["Zé"], "Amigo", "singular"],
   [["João"], "Amigo", "singular"],
