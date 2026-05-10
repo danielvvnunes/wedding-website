@@ -904,7 +904,7 @@ export default function WeddingWebsite() {
               <div className="mb-8 flex items-center justify-center gap-4 text-center">
                 <span className="h-px flex-1 bg-[#c2a45f]/30" />
                 <p className="font-serif text-lg text-[#9b7f42]">
-                  Confirmar até 15.08.2026
+                  Confirmar até 10.06.2026
                 </p>
                 <span className="h-px flex-1 bg-[#c2a45f]/30" />
               </div>
@@ -1021,7 +1021,7 @@ export default function WeddingWebsite() {
                     {submitStatus === "attending" && (
                       <>
                         <p className="font-serif text-2xl text-[#8a9784]">
-                          Que alegria! 💛
+                          Que alegria! 🤍
                         </p>
                         <p className="mt-2 text-sm leading-6 text-[#6c5b4a]">
                           A vossa presença ficou confirmada. Estamos muito

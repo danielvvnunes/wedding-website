@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 import igrejaImg from "./assets/igreja.png";
+import quintaImg from "./assets/quinta.png";
 
 const customStyles = `
 @import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap");
@@ -330,7 +331,10 @@ const customStyles = `
 }
 
 .minimal-select {
-  appearance: auto;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
   background-image:
     linear-gradient(45deg, transparent 50%, #8f9f8a 50%),
     linear-gradient(135deg, #8f9f8a 50%, transparent 50%);
@@ -339,20 +343,7 @@ const customStyles = `
     calc(100% - 14px) 50%;
   background-size: 6px 6px, 6px 6px;
   background-repeat: no-repeat;
-}
-
-@media (min-width: 768px) {
-  .minimal-select {
-    appearance: none;
-    background-image:
-      linear-gradient(45deg, transparent 50%, #8f9f8a 50%),
-      linear-gradient(135deg, #8f9f8a 50%, transparent 50%);
-    background-position:
-      calc(100% - 20px) 50%,
-      calc(100% - 14px) 50%;
-    background-size: 6px 6px, 6px 6px;
-    background-repeat: no-repeat;
-  }
+  padding-right: 2.75rem;
 }
 
 .soft-line {
@@ -389,76 +380,76 @@ const customStyles = `
 `;
 
 const guestList = [
-  [["Pais"], "Queridos"],
-  [["Maria", "Tiago", "Matilde", "Manuel", "Tomás"], "Queridos"],
-  [["Irmã Margarida"], "Querida"],
-  [["Tia Ada"], "Querida"],
-  [["Padrinho Manuel", "Maria"], "Queridos"],
-  [["Prima Carolina", "Phil", "Matilde", "Vicente"], "Queridos"],
-  [["Prima Margarida"], "Querida"],
-  [["Tia Dina"], "Querida"],
-  [["Prima Catarina"], "Querida"],
-  [["Primo Rafael"], "Querido"],
+  [["Pais"], "Queridos", "plural"],
+  [["Maria", "Tiago", "Matilde", "Manuel", "Tomás"], "Queridos", "plural"],
+  [["Irmã Margarida"], "Querida", "singular"],
+  [["Tia Ada"], "Querida", "singular"],
+  [["Padrinho Manuel", "Maria"], "Queridos", "plural"],
+  [["Prima Carolina", "Phil", "Matilde", "Vicente"], "Queridos", "plural"],
+  [["Prima Margarida"], "Querida", "singular"],
+  [["Tia Dina"], "Querida", "singular"],
+  [["Prima Catarina"], "Querida", "singular"],
+  [["Primo Rafael"], "Querido", "singular"],
 
-  [["Beatriz"], "Querida Amiga"],
-  [["Clara"], "Querida Amiga"],
-  [["Quecas"], "Querida Amiga"],
-  [["Carlos", "Inês"], "Queridos Amigos"],
-  [["Hugo"], "Querido Amigo"],
-  [["Daniela"], "Querida Amiga"],
-  [["Catarina Laginhas", "Família"], "Querida Amiga"],
-  [["João Fernandes"], "Querido Amigo"],
-  [["Bruno Vidal"], "Querido Amigo"],
-  [["João Azenha"], "Querido Amigo"],
-  [["Mariana Martins"], "Querida Amiga"],
-  [["Miguel"], "Querido Amigo"],
-  [["Raquel"], "Querida"],
-  [["Mafalda"], "Querida Amiga"],
-  [["Catarina Neto"], "Querida Amiga"],
-  [["Mariana Cardoso"], "Querida Amiga"],
-  [["Inês Marques"], "Querida Amiga"],
-  [["Chaliça"], "Querida Amiga"],
-  [["Popóxia"], "Querida Amiga"],
-  [["Pilay"], "Querida Amiga"],
-  [["Gina"], "Querida Amiga"],
-  [["Camões"], "Querido Afilhado"],
-  [["Célia"], "Querido Amigo"],
-  [["Lenka"], "Querida Amiga"],
-  [["Pombinhas"], "Querido Amigo"],
+  [["Beatriz"], "Querida Amiga", "singular"],
+  [["Clara"], "Querida Amiga", "singular"],
+  [["Quecas"], "Querida Amiga", "singular"],
+  [["Carlos", "Inês"], "Queridos Amigos", "plural"],
+  [["Hugo"], "Querido Amigo", "singular"],
+  [["Daniela"], "Querida Amiga", "singular"],
+  [["Catarina Laginhas", "Família"], "Querida Amiga", "plural"],
+  [["João Fernandes"], "Querido Amigo", "singular"],
+  [["Bruno Vidal"], "Querido Amigo", "singular"],
+  [["João Azenha"], "Querido Amigo", "singular"],
+  [["Mariana Martins"], "Querida Amiga", "singular"],
+  [["Miguel"], "Querido Amigo", "singular"],
+  [["Raquel"], "Querida", "singular"],
+  [["Mafalda"], "Querida Amiga", "singular"],
+  [["Catarina Neto"], "Querida Amiga", "singular"],
+  [["Mariana Cardoso"], "Querida Amiga", "singular"],
+  [["Inês Marques"], "Querida Amiga", "singular"],
+  [["Chaliça"], "Querida Amiga", "singular"],
+  [["Popóxia"], "Querida Amiga", "singular"],
+  [["Pilay"], "Querida Amiga", "singular"],
+  [["Gina"], "Querida Amiga", "singular"],
+  [["Camões"], "Querido Afilhado", "singular"],
+  [["Célia"], "Querido Amigo", "singular"],
+  [["Lenka"], "Querida Amiga", "singular"],
+  [["Pombinhas"], "Querido Amigo", "singular"],
 
-  [["Pais"], "Queridos"],
-  [["Avós Alice e Alberto"], "Queridos"],
-  [["Avô Albano"], "Querido"],
-  [["Tio Zé", "Gina", "Vicente"], "Queridos"],
-  [["Padrinho Jorge", "Tia Sandra", "Primo Duarte"], "Queridos"],
-  [["Tia Maria Luís", "Vítor", "Primo Martim"], "Queridos"],
-  [["Prima Leonor", "Samuel"], "Queridos"],
-  [["Duarte"], "Primo"],
-  [["Tia Elsa", "Primo João"], "Queridos"],
-  [["Paulo"], "Caro"],
-  [["Luís", "Cristina"], "Queridos Primos"],
-  [["Primo André", "Catarina", "Ana Luísa"], "Queridos"],
-  [["Prima Sofia"], "Querida"],
-  [["Madrinha", "Martins"], "Queridos"],
-  [["Prima Olívia", "Mário"], "Queridos"],
-  [["Primo Gonçalo"], "Querido"],
-  [["Tia Deolinda"], "Querida"],
+  [["Pais"], "Queridos", "plural"],
+  [["Avós Alice e Alberto"], "Queridos", "plural"],
+  [["Avô Albano"], "Querido", "singular"],
+  [["Tio Zé", "Gina", "Vicente"], "Queridos", "plural"],
+  [["Padrinho Jorge", "Tia Sandra", "Primo Duarte"], "Queridos", "plural"],
+  [["Tia Maria Luís", "Vítor", "Primo Martim"], "Queridos", "plural"],
+  [["Prima Leonor", "Samuel"], "Queridos", "plural"],
+  [["Duarte"], "Primo", "singular"],
+  [["Tia Elsa", "Primo João"], "Queridos", "plural"],
+  [["Paulo"], "Caro", "singular"],
+  [["Luís", "Cristina"], "Queridos Primos", "plural"],
+  [["Primo André", "Catarina", "Ana Luísa"], "Queridos", "plural"],
+  [["Prima Sofia"], "Querida", "singular"],
+  [["Madrinha", "Martins"], "Queridos", "plural"],
+  [["Prima Olívia", "Mário"], "Queridos", "plural"],
+  [["Primo Gonçalo"], "Querido", "singular"],
+  [["Tia Deolinda"], "Querida", "singular"],
 
-  [["Aylton"], "Amigo"],
-  [["Nuno", "Quica"], "Amigos"],
-  [["Bruno", "Família"], "Amigo"],
-  [["Rodrigo"], "Amigo"],
-  [["Almeirante"], "Amigo"],
-  [["Tiago"], "Amigo"],
-  [["Zé"], "Amigo"],
-  [["Patrícia"], "Amiga"],
-  [["Ana Margarida", "António"], "Caros"],
-  [["Zé"], "Amigo"],
-  [["João"], "Amigo"],
-  [["Soraya", "David"], "Amigos"],
-  [["Tiago"], "Amigo"],
-  [["Luís", "Família"], "Amigo"],
-  [["Pina"], "Afilhado"],
+  [["Aylton"], "Amigo", "singular"],
+  [["Nuno", "Quica"], "Amigos", "plural"],
+  [["Bruno", "Família"], "Amigo", "plural"],
+  [["Rodrigo"], "Amigo", "singular"],
+  [["Almeirante"], "Amigo", "singular"],
+  [["Tiago"], "Amigo", "singular"],
+  [["Zé"], "Amigo", "singular"],
+  [["Patrícia"], "Amiga", "singular"],
+  [["Ana Margarida", "António"], "Caros", "plural"],
+  [["Zé"], "Amigo", "singular"],
+  [["João"], "Amigo", "singular"],
+  [["Soraya", "David"], "Amigos", "plural"],
+  [["Tiago"], "Amigo", "singular"],
+  [["Luís", "Família"], "Amigo", "plural"],
+  [["Pina"], "Afilhado", "singular"],
 ];
 
 function slugify(text) {
@@ -471,7 +462,7 @@ function slugify(text) {
 }
 
 const guests = Object.fromEntries(
-  guestList.map(([names, greeting]) => {
+  guestList.map(([names, greeting, type]) => {
     const firstName = names[0]; // 👈 só o primeiro
     const slug = slugify(firstName);
 
@@ -480,6 +471,7 @@ const guests = Object.fromEntries(
       {
         names: names.filter(Boolean),
         greeting,
+        type,
       },
     ];
   }),
@@ -508,10 +500,13 @@ function getGuestMessage(guest) {
   return (
     <>
       <span className="gold-accent font-semibold text-[1.1em]">
-        {guest.greeting} {formatNames(guest.names)}
-      </span>
-      , gastaríamos muito que estivessem presentes para celebrar este dia
-      connosco.
+        {guest.greeting} {formatNames(guest.names)},
+      </span>{" "}
+      gostaríamos muito que{" "}
+      {guest.type === "singular"
+        ? "estivesses presente"
+        : "estivessem presentes"}{" "}
+      para celebrar este dia connosco.
     </>
   );
 }
@@ -614,8 +609,8 @@ export default function WeddingWebsiteV3() {
   const [people, setPeople] = useState(
     savedForm?.people ||
       (guest
-        ? guest.names.map((personName) => ({
-            name: personName,
+        ? guest.names.map(() => ({
+            name: "",
             email: "",
             phone: "",
             attending: "yes",
@@ -932,7 +927,11 @@ export default function WeddingWebsiteV3() {
             <MinimalHeader
               eyebrow="Countdown"
               title="Estamos quase a dizer sim."
-              text="Até lá, guardem esta data com carinho. Queremos muito partilhar este momento convosco."
+              text={
+                guest?.type === "singular"
+                  ? "Os principais momentos da celebração, para viveres connosco cada detalhe deste dia especial."
+                  : "Os principais momentos da celebração, para viverem connosco cada detalhe deste dia especial."
+              }
             />
 
             <div className="mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-x-8 gap-y-12 text-center sm:grid-cols-4">
@@ -958,7 +957,11 @@ export default function WeddingWebsiteV3() {
             <MinimalHeader
               eyebrow="Timeline"
               title="O ritmo do dia"
-              text="Os principais momentos da celebração, para viverem connosco cada detalhe deste dia especial."
+              text={
+                guest?.type === "singular"
+                  ? "Os principais momentos da celebração, para viveres connosco cada detalhe deste dia especial."
+                  : "Os principais momentos da celebração, para viverem connosco cada detalhe deste dia especial."
+              }
             />
             <div className="mt-20 space-y-12">
               <Timeline
@@ -998,7 +1001,7 @@ export default function WeddingWebsiteV3() {
                 text="Música, dança e memórias para guardar."
               />
               <Timeline
-                time="22:00"
+                time="23:00"
                 title="Buffet"
                 image={BuffetImg}
                 text="Repor as energias para continuar a festa."
@@ -1007,8 +1010,24 @@ export default function WeddingWebsiteV3() {
           </div>
         </section>
 
-        <section id="locais" className="section-soft px-6 py-24 md:py-32">
-          <div className="mx-auto max-w-6xl">
+        <section
+          id="locais"
+          className="section-soft relative overflow-hidden px-6 py-24 md:py-32"
+        >
+          <img
+            src={quintaImg}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-20 w-[420px] max-w-[115%] -translate-x-1/2 opacity-[0.30] mix-blend-multiply md:right-10 md:left-auto md:top-16 md:w-[520px] md:translate-x-0 md:opacity-[0.07]"
+            style={{
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, black 32%, black 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, black 32%, black 100%)",
+            }}
+          />
+
+          <div className="relative z-10 mx-auto max-w-6xl">
             <MinimalHeader
               eyebrow="Locais"
               title="Onde tudo acontece"
@@ -1019,15 +1038,17 @@ export default function WeddingWebsiteV3() {
               <VenueText
                 label="Cerimónia"
                 title="Igreja Matriz de Santa Iria da Azóia"
-                text="O lugar onde vamos dar início a este novo capítulo, rodeados pela nossa família e amigos."
+                text="O lugar onde vamos dar início a este novo capítulo, rodeados de família e amigos."
                 cta="Ver localização"
+                href="/convemsaber#igreja"
               />
 
               <VenueText
                 label="Celebração"
                 title="Quinta do Coração"
-                text="Depois da cerimónia, continuamos o dia com brindes, comida, música e muitas memórias para guardar."
-                cta="Mais detalhes em breve"
+                text="Continuamos o dia com brindes, comida, música e muitas memórias para guardar."
+                cta="Ver localização"
+                href="/convemsaber#quinta"
               />
             </div>
           </div>
@@ -1043,17 +1064,21 @@ export default function WeddingWebsiteV3() {
               <div className="gold-line mx-auto mt-6 max-w-[180px]" />
 
               <h2 className="mt-8 text-5xl font-extrabold  leading-[0.9] tracking-[-0.07em] text-[#b7c4b0] md:text-7xl">
-                Confirmem a vossa presença
+                {guest?.type === "singular"
+                  ? "Confirma a tua presença"
+                  : "Confirmem a vossa presença"}{" "}
               </h2>
 
               <p className="mx-auto mt-8 max-w-xl text-lg font-light leading-8 text-[#8f9f8a]">
-                A vossa presença é o nosso melhor presente. Confirmar até
-                15.08.2026.
+                {guest?.type === "singular"
+                  ? "A tua presença é o nosso melhor presente."
+                  : "A vossa presença é o nosso melhor presente."}{" "}
+                Confirmar até <span className="font-black">10.06.2026</span>.
               </p>
             </div>
 
             <form
-              className={`mt-14 space-y-6 md:mt-20 ${
+              className={`mt-10 space-y-6 md:mt-20 ${
                 hasTriedSubmit ? "form-submitted" : ""
               }`}
               onSubmit={(e) => {
@@ -1068,9 +1093,9 @@ export default function WeddingWebsiteV3() {
             >
               <div className="space-y-5">
                 <div className="text-center">
-                  <p className="form-label">Pessoas incluídas neste convite</p>
+                  {/* <p className="form-label">Pessoas incluídas neste convite</p> */}
                   <p className="mt-2 text-sm font-light leading-6 text-[#8f9f8a]">
-                    Confirmem cada pessoa individualmente, para sabermos
+                    Preencher cada pessoa individualmente, para sabermos
                     exatamente quem estará presente.
                   </p>
                 </div>
@@ -1299,7 +1324,7 @@ export default function WeddingWebsiteV3() {
               {submitStatus && (
                 <p className="pt-4 text-center text-sm font-semibold text-[#8f9f8a]">
                   {submitStatus === "attending" &&
-                    "Que alegria! A vossa presença ficou confirmada. 💛"}
+                    `Que alegria! ${people.length === 1 ? "A tua presença ficou confirmada. 🤍" : "A vossa presença ficou confirmada. 🤍"}`}
                   {submitStatus === "not-attending" &&
                     "Vamos sentir a vossa falta. Obrigado por nos avisarem."}
                   {submitStatus === "missing-contact" &&
@@ -1376,12 +1401,13 @@ export default function WeddingWebsiteV3() {
                 </p>
 
                 <h3 className="mt-4 text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
-                  Guardem a data
+                  {people.length === 1 ? "Guarda a data" : "Guardem a data"}
                 </h3>
 
                 <p className="mx-auto mt-4 max-w-xl text-base font-light leading-7 text-[#8f9f8a]">
-                  A vossa presença ficou confirmada. Podem agora adicionar o
-                  casamento ao calendário para terem o dia sempre à mão.
+                  {people.length === 1
+                    ? "A tua presença ficou confirmada. Podes agora adicionar o casamento ao calendário para teres o dia sempre à mão."
+                    : "A vossa presença ficou confirmada. Podem agora adicionar o casamento ao calendário para terem o dia sempre à mão."}
                 </p>
 
                 <button
@@ -1600,22 +1626,25 @@ function Timeline({ time, image, title, text }) {
   );
 }
 
-function VenueText({ label, title, text, cta }) {
+function VenueText({ label, title, text, cta, href }) {
   return (
     <div className="reveal-on-scroll">
       <p className="text-xs font-semibold uppercase tracking-[0.45em] text-[#b7c4b0]/70">
         {label}
       </p>
 
-      <h3 className="mt-6 text-4xl font-extrabold  leading-none tracking-[-0.06em] text-[#b7c4b0] md:text-5xl">
+      <h3 className="mt-6 text-4xl font-extrabold leading-none tracking-[-0.06em] text-[#b7c4b0] md:text-5xl">
         {title}
       </h3>
 
       <p className="mt-6 text-lg font-light leading-8 text-[#8f9f8a]">{text}</p>
 
-      <button className="cursor-pointer mt-8 text-xs font-bold uppercase tracking-[0.35em] text-[#cdb892]">
+      <Link
+        to={href}
+        className="mt-8 inline-block cursor-pointer text-xs font-bold uppercase tracking-[0.35em] text-[#cdb892] transition hover:opacity-70"
+      >
         {cta}
-      </button>
+      </Link>
     </div>
   );
 }

@@ -134,12 +134,12 @@ export default function AccommodationAndLocations() {
           </div>
         </div>
       </section> */}
-      <section className="section-cream px-6 py-20 md:py-28">
+      <section id="igreja" className="section-cream px-6 py-20 md:py-28">
         <div className="mx-auto max-w-6xl">
           <SectionTitle
             eyebrow="Cerimónia"
             title="A Igreja"
-            text="A cerimónia terá lugar na igreja, em Santa Iria da Azóia. Sugerimos que cheguem com alguma antecedência, para estacionarem com tranquilidade e poderem entrar sem pressas."
+            text="A cerimónia terá lugar na igreja Matriz de Santa Iria da Azóia. Sugerimos que cheguem com alguma antecedência, para estacionarem com tranquilidade e poderem entrar sem pressas."
           />
 
           <LocationBlock
@@ -153,12 +153,12 @@ export default function AccommodationAndLocations() {
         </div>
       </section>
 
-      <section className="px-6 py-20 md:py-28">
+      <section id="quinta" className="px-6 py-20 md:py-28">
         <div className="mx-auto max-w-6xl">
           <SectionTitle
             eyebrow="Celebração"
-            title="A quinta"
-            text="Após a cerimónia, seguiremos para a quinta, onde terão lugar o cocktail, a refeição e a festa. Mais próximo da data, partilharemos informações adicionais, caso sejam necessárias."
+            title="A Quinta"
+            text="Após a cerimónia, seguiremos juntos para a quinta, onde partilharemos momentos especiais."
           />
 
           <LocationBlock
@@ -171,14 +171,31 @@ export default function AccommodationAndLocations() {
           />
         </div>
       </section>
-      <footer className="section-cream px-6 py-14 text-center">
-        <p className="text-3xl font-extrabold tracking-[-0.06em] text-[#b7c4b0]">
-          F · D
+      <footer className="section-cream px-6 py-16 text-center text-[#b7c4b0]">
+        <div className="soft-line mx-auto mb-12 max-w-4xl" />
+
+        <p className="text-3xl font-extrabold tracking-[-0.06em]">F · D</p>
+
+        <p className="mt-4 text-sm text-[#8f9f8a]">
+          Francisca & Daniel · 26 de setembro de 2026
         </p>
 
         <p className="mt-4 text-sm text-[#8f9f8a]">
-          Francisca & Daniel · 26.09.2026
+          ✉ casamento.franciscadaniel@gmail.com
         </p>
+
+        {/* Telefones */}
+        <div className="mt-6 flex justify-center gap-6 text-sm text-[#8f9f8a] tracking-[0.18em]">
+          <span className="flex flex-col md:inline">
+            <span>Daniel: </span>
+            <span className="md:inline">918 947 632</span>
+          </span>
+          <span className="opacity-40">|</span>
+          <span className="flex flex-col md:inline">
+            <span>Francisca: </span>
+            <span className="md:inline">965 518 462</span>
+          </span>
+        </div>
       </footer>
     </main>
   );

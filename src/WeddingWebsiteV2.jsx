@@ -650,7 +650,7 @@ export default function WeddingWebsite() {
                   <div className="rounded-3xl border border-[#1f261f]/10 bg-[#f4efe7] px-5 py-4 text-center">
                     {submitStatus === "attending" && (
                       <p className="text-sm font-semibold text-[#1f261f]">
-                        Que alegria! A vossa presença ficou confirmada. 💛
+                        Que alegria! A vossa presença ficou confirmada. 🤍
                       </p>
                     )}
 

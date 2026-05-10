@@ -239,7 +239,7 @@ export default function GalleryPage() {
           </h1>
 
           <p className="mx-auto mt-8 max-w-2xl text-lg font-light leading-8">
-            Depois do casamento, podem deixar aqui as fotografias e vídeos que
+            Durante e depois do casamento, podem deixar aqui as fotografias que
             guardaram do nosso dia. Vamos adorar ver o dia pelos vossos olhos.
           </p>
         </div>
@@ -269,10 +269,6 @@ export default function GalleryPage() {
 
               <span className="mt-5 text-sm font-bold uppercase tracking-[0.28em] text-[#cdb892]">
                 Escolher fotografias
-              </span>
-
-              <span className="mt-3 max-w-md text-sm font-light leading-6 text-[#8f9f8a]">
-                Podem selecionar várias imagens ao mesmo tempo.
               </span>
 
               <input
@@ -313,7 +309,7 @@ export default function GalleryPage() {
             {status && (
               <p className="mt-8 text-center text-sm font-semibold text-[#8f9f8a]">
                 {status === "success" &&
-                  "Obrigada! As fotografias foram enviadas com sucesso. 💛"}
+                  "Obrigada! As fotografias foram enviadas com sucesso. 🤍"}
                 {status === "missing-name" &&
                   "Indica o teu nome antes de enviar."}
                 {status === "missing-files" &&
@@ -340,6 +336,8 @@ export default function GalleryPage() {
                 <p className="gold-accent text-xs font-semibold uppercase tracking-[0.45em]">
                   Memórias partilhadas
                 </p>
+
+                <div className="gold-line mx-auto mt-6 max-w-[180px]" />
 
                 <h2 className="mt-5 text-4xl font-extrabold leading-[0.95] tracking-[-0.03em] text-[#b7c4b0] md:text-5xl">
                   As fotografias dos convidados
@@ -435,16 +433,31 @@ export default function GalleryPage() {
         </div>
       </section>
 
-      <footer className="section-cream px-6 py-14 text-center">
-        <div className="gold-line mx-auto mb-10 max-w-[180px]" />
+      <footer className="section-cream px-6 py-16 text-center text-[#b7c4b0]">
+        <div className="soft-line mx-auto mb-12 max-w-4xl" />
 
-        <p className="text-3xl font-extrabold tracking-[-0.06em] text-[#b7c4b0]">
-          F · D
+        <p className="text-3xl font-extrabold tracking-[-0.06em]">F · D</p>
+
+        <p className="mt-4 text-sm text-[#8f9f8a]">
+          Francisca & Daniel · 26 de setembro de 2026
         </p>
 
         <p className="mt-4 text-sm text-[#8f9f8a]">
-          Francisca & Daniel · 26.09.2026
+          ✉ casamento.franciscadaniel@gmail.com
         </p>
+
+        {/* Telefones */}
+        <div className="mt-6 flex justify-center gap-6 text-sm text-[#8f9f8a] tracking-[0.18em]">
+          <span className="flex flex-col md:inline">
+            <span>Daniel: </span>
+            <span className="md:inline">918 947 632</span>
+          </span>
+          <span className="opacity-40">|</span>
+          <span className="flex flex-col md:inline">
+            <span>Francisca: </span>
+            <span className="md:inline">965 518 462</span>
+          </span>
+        </div>
       </footer>
 
       {selectedItem && (
