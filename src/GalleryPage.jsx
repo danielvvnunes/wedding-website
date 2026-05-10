@@ -241,6 +241,7 @@ export default function GalleryPage() {
           <p className="mx-auto mt-8 max-w-2xl text-lg font-light leading-8">
             Durante e depois do casamento, podem deixar aqui as fotografias que
             guardaram do nosso dia. Vamos adorar ver o dia pelos vossos olhos.
+            Também podem ir adicionando fotos connosco até lá!
           </p>
         </div>
       </section>
