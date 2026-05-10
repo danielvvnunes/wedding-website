@@ -434,7 +434,7 @@ const guestList = [
   [["Prima Olívia", "Mário"], "Queridos", "plural"],
   [["Primo Gonçalo"], "Querido", "singular"],
   [["Tia Deolinda"], "Querida", "singular"],
-
+  [["Dra Joana e Dr Rui"], "Queridos", "plural"],
   [["Aylton"], "Amigo", "singular"],
   [["Nuno", "Quica"], "Amigos", "plural"],
   [["Bruno", "Família"], "Amigo", "plural"],
