@@ -433,7 +433,7 @@ const guestList = [
   [["Madrinha", "Martins"], "Queridos", "plural"],
   [["Prima Olívia", "Mário"], "Queridos", "plural"],
   [["Primo Gonçalo"], "Querido", "singular"],
-  [["Tia Deolinda"], "Querida", "singular"],
+  [["Tia Deolinda e primo João"], "Queridos", "plural"],
   [["Dra Joana e Dr Rui"], "Queridos", "plural"],
   [["Aylton"], "Amigo", "singular"],
   [["Nuno", "Quica"], "Amigos", "plural"],
@@ -1037,7 +1037,7 @@ export default function WeddingWebsiteV3() {
             <div className="mt-20 grid gap-16 md:grid-cols-2">
               <VenueText
                 label="Cerimónia"
-                title="Igreja Matriz de Santa Iria da Azóia"
+                title="Igreja Matriz de Santa Iria de Azóia"
                 text="O lugar onde vamos dar início a este novo capítulo, rodeados de família e amigos."
                 cta="Ver localização"
                 href="/convemsaber#igreja"

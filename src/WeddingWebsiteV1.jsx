@@ -670,7 +670,7 @@ export default function WeddingWebsite() {
                   number="01"
                   icon="⛪"
                   title="Cerimónia"
-                  text="Às 11h30, na Igreja Matriz de Santa Iria da Azóia, onde vamos trocar os nossos votos rodeados por quem mais amamos."
+                  text="Às 11h30, na Igreja Matriz de Santa Iria de Azóia, onde vamos trocar os nossos votos rodeados por quem mais amamos."
                 />
               </div>
               <div className="reveal-on-scroll reveal-delay-2">
