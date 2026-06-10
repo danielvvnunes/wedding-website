@@ -106,6 +106,7 @@ export default function AdminRSVP() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deletingIds, setDeletingIds] = useState([]);
   const [pendingDeleteResponse, setPendingDeleteResponse] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
 
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
@@ -140,6 +141,24 @@ export default function AdminRSVP() {
     }, 0);
 
     return () => window.clearTimeout(timer);
+  }, [isAuthenticated, fetchResponses]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    function syncVisiblePage() {
+      if (document.visibilityState === "visible") {
+        fetchResponses();
+      }
+    }
+
+    document.addEventListener("visibilitychange", syncVisiblePage);
+    window.addEventListener("focus", fetchResponses);
+
+    return () => {
+      document.removeEventListener("visibilitychange", syncVisiblePage);
+      window.removeEventListener("focus", fetchResponses);
+    };
   }, [isAuthenticated, fetchResponses]);
 
   const stats = useMemo(() => {
@@ -199,17 +218,24 @@ export default function AdminRSVP() {
   }, [responses, searchTerm]);
 
   async function deleteResponse(responseId) {
+    setDeleteError("");
     setDeletingIds((currentIds) => [...currentIds, responseId]);
 
-    const { error } = await supabase.from("rsvp").delete().eq("id", responseId);
+    const { data, error } = await supabase
+      .from("rsvp")
+      .delete()
+      .eq("id", responseId)
+      .select("id");
 
     if (error) {
       console.error(error);
-      alert("Erro ao apagar resposta");
-    } else {
-      setResponses((currentResponses) =>
-        currentResponses.filter((response) => response.id !== responseId),
+      setDeleteError("Erro ao apagar resposta. Tenta novamente.");
+    } else if (!data?.length) {
+      setDeleteError(
+        "A resposta não foi apagada na base de dados. Confirma a policy DELETE da tabela rsvp no Supabase.",
       );
+    } else {
+      await fetchResponses();
       setPendingDeleteResponse(null);
     }
 
@@ -443,7 +469,10 @@ export default function AdminRSVP() {
               <RSVPCard
                 key={response.id}
                 response={response}
-                onDelete={() => setPendingDeleteResponse(response)}
+                onDelete={() => {
+                  setDeleteError("");
+                  setPendingDeleteResponse(response);
+                }}
                 isDeleting={deletingIds.includes(response.id)}
               />
             ))}
@@ -456,7 +485,11 @@ export default function AdminRSVP() {
         <DeleteConfirmModal
           response={pendingDeleteResponse}
           isDeleting={deletingIds.includes(pendingDeleteResponse.id)}
-          onCancel={() => setPendingDeleteResponse(null)}
+          error={deleteError}
+          onCancel={() => {
+            setDeleteError("");
+            setPendingDeleteResponse(null);
+          }}
           onConfirm={() => deleteResponse(pendingDeleteResponse.id)}
         />
       )}
@@ -591,7 +624,13 @@ function RSVPCard({ response, onDelete, isDeleting }) {
   );
 }
 
-function DeleteConfirmModal({ response, isDeleting, onCancel, onConfirm }) {
+function DeleteConfirmModal({
+  response,
+  isDeleting,
+  error,
+  onCancel,
+  onConfirm,
+}) {
   const peopleNames =
     (response.people || [])
       .map((person) => person.name)
@@ -624,6 +663,12 @@ function DeleteConfirmModal({ response, isDeleting, onCancel, onConfirm }) {
           <span className="font-bold text-[#7f8f78]">{peopleNames}</span>. Esta
           ação não pode ser desfeita.
         </p>
+
+        {error && (
+          <p className="mt-5 rounded-[1.2rem] border border-[#d9a6a6]/45 bg-[#d9a6a6]/15 px-4 py-3 text-sm leading-6 text-[#b76f6f]">
+            {error}
+          </p>
+        )}
 
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
           <button
