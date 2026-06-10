@@ -90,9 +90,22 @@ const adminStyles = `
 }
 `;
 
+function formatAdminDate(dateValue) {
+  if (!dateValue) return "";
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Lisbon",
+  }).format(new Date(dateValue));
+}
+
 export default function AdminRSVP() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [deletingIds, setDeletingIds] = useState([]);
+  const [pendingDeleteResponse, setPendingDeleteResponse] = useState(null);
 
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
@@ -169,6 +182,42 @@ export default function AdminRSVP() {
 
   const COLORS = ["#b7c4b0", "#d9a6a6"];
 
+  const filteredResponses = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-PT");
+
+    if (!normalizedSearch) {
+      return responses;
+    }
+
+    return responses.filter((response) =>
+      (response.people || []).some((person) =>
+        (person.name || "")
+          .toLocaleLowerCase("pt-PT")
+          .includes(normalizedSearch),
+      ),
+    );
+  }, [responses, searchTerm]);
+
+  async function deleteResponse(responseId) {
+    setDeletingIds((currentIds) => [...currentIds, responseId]);
+
+    const { error } = await supabase.from("rsvp").delete().eq("id", responseId);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao apagar resposta");
+    } else {
+      setResponses((currentResponses) =>
+        currentResponses.filter((response) => response.id !== responseId),
+      );
+      setPendingDeleteResponse(null);
+    }
+
+    setDeletingIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== responseId),
+    );
+  }
+
   function exportCSV() {
     const rows = responses.flatMap((response) =>
       (response.people || []).map((person) => ({
@@ -179,9 +228,7 @@ export default function AdminRSVP() {
         Tipo: person.ageGroup ?? "",
         RestricoesAlimentares: person.dietary ?? "",
         NotasGerais: response.notes ?? "",
-        Data: response.created_at
-          ? new Date(response.created_at).toLocaleString("pt-PT")
-          : "",
+        Data: formatAdminDate(response.created_at),
       })),
     );
 
@@ -272,33 +319,34 @@ export default function AdminRSVP() {
   }
 
   return (
-    <main className="admin-bg min-h-screen px-5 py-10 text-[#7f8f78]">
-      <style>{adminStyles}</style>
+    <>
+      <main className="admin-bg min-h-screen px-5 py-10 text-[#7f8f78]">
+        <style>{adminStyles}</style>
 
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-12 text-center">
-          <p className="gold-accent text-xs font-bold uppercase tracking-[0.45em]">
-            Painel privado
-          </p>
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-12 text-center">
+            <p className="gold-accent text-xs font-bold uppercase tracking-[0.45em]">
+              Painel privado
+            </p>
 
-          <div className="gold-line mx-auto mt-6 max-w-[180px]" />
+            <div className="gold-line mx-auto mt-6 max-w-[180px]" />
 
-          <h1 className="mt-8 text-6xl font-extrabold leading-[0.9] tracking-[-0.07em] text-[#b7c4b0] md:text-7xl">
-            RSVP
-          </h1>
+            <h1 className="mt-8 text-6xl font-extrabold leading-[0.9] tracking-[-0.07em] text-[#b7c4b0] md:text-7xl">
+              RSVP
+            </h1>
 
-          <p className="mx-auto mt-5 max-w-xl text-lg font-light leading-8 text-[#8f9f8a]">
-            Respostas ao convite de Francisca & Daniel
-          </p>
-        </header>
+            <p className="mx-auto mt-5 max-w-xl text-lg font-light leading-8 text-[#8f9f8a]">
+              Respostas ao convite de Francisca & Daniel
+            </p>
+          </header>
 
-        <div className="mb-8 grid gap-4 md:grid-cols-5">
-          <StatCard label="Confirmados" value={stats.totalPeople} />
-          <StatCard label="Não vão" value={stats.declined} />
-          <StatCard label="Adultos" value={stats.adults} />
-          <StatCard label="Crianças ≤3" value={stats.childrenUnder3} />
-          <StatCard label="Crianças ≤9" value={stats.childrenUnder9} />
-        </div>
+          <div className="mb-8 grid gap-4 md:grid-cols-5">
+            <StatCard label="Confirmados" value={stats.totalPeople} />
+            <StatCard label="Não vão" value={stats.declined} />
+            <StatCard label="Adultos" value={stats.adults} />
+            <StatCard label="Crianças ≤3" value={stats.childrenUnder3} />
+            <StatCard label="Crianças ≤9" value={stats.childrenUnder9} />
+          </div>
 
         <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -349,33 +397,70 @@ export default function AdminRSVP() {
           </div>
         </section>
 
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <button
-            onClick={fetchResponses}
-            className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/45 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-[#cdb892] shadow-sm backdrop-blur transition hover:-translate-y-[1px] hover:bg-white"
-          >
-            Atualizar
-          </button>
+        <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Pesquisar por nome"
+              className="admin-field"
+            />
 
-          <button
-            onClick={exportCSV}
-            className="cursor-pointer rounded-full border border-[#cdb892] bg-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white shadow-[0_8px_28px_rgba(205,184,146,0.28)] transition hover:-translate-y-[1px] hover:bg-[#b7975b]"
-          >
-            Exportar CSV
-          </button>
+            {searchTerm.trim() && (
+              <p className="mt-2 text-sm text-[#8f9f8a]">
+                {filteredResponses.length} de {responses.length} respostas
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              onClick={fetchResponses}
+              className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/45 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-[#cdb892] shadow-sm backdrop-blur transition hover:-translate-y-[1px] hover:bg-white"
+            >
+              Atualizar
+            </button>
+
+            <button
+              onClick={exportCSV}
+              className="cursor-pointer rounded-full border border-[#cdb892] bg-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white shadow-[0_8px_28px_rgba(205,184,146,0.28)] transition hover:-translate-y-[1px] hover:bg-[#b7975b]"
+            >
+              Exportar CSV
+            </button>
+          </div>
         </div>
 
         {loading ? (
           <p className="text-center text-[#8f9f8a]">A carregar respostas...</p>
+        ) : filteredResponses.length === 0 ? (
+          <p className="text-center text-[#8f9f8a]">
+            Nenhuma resposta encontrada.
+          </p>
         ) : (
           <div className="grid gap-4">
-            {responses.map((response) => (
-              <RSVPCard key={response.id} response={response} />
+            {filteredResponses.map((response) => (
+              <RSVPCard
+                key={response.id}
+                response={response}
+                onDelete={() => setPendingDeleteResponse(response)}
+                isDeleting={deletingIds.includes(response.id)}
+              />
             ))}
           </div>
         )}
-      </div>
-    </main>
+        </div>
+      </main>
+
+      {pendingDeleteResponse && (
+        <DeleteConfirmModal
+          response={pendingDeleteResponse}
+          isDeleting={deletingIds.includes(pendingDeleteResponse.id)}
+          onCancel={() => setPendingDeleteResponse(null)}
+          onConfirm={() => deleteResponse(pendingDeleteResponse.id)}
+        />
+      )}
+    </>
   );
 }
 
@@ -402,10 +487,8 @@ function MiniStat({ label, value }) {
   );
 }
 
-function RSVPCard({ response }) {
-  const date = response.created_at
-    ? new Date(response.created_at).toLocaleString("pt-PT")
-    : "";
+function RSVPCard({ response, onDelete, isDeleting }) {
+  const date = formatAdminDate(response.created_at);
 
   const people = response.people || [];
   const attendingCount = people.filter(
@@ -442,7 +525,18 @@ function RSVPCard({ response }) {
           </h2>
         </div>
 
-        <p className="text-sm text-[#cdb892]">{date}</p>
+        <div className="flex flex-col items-start gap-3 md:items-end">
+          <p className="text-sm text-[#cdb892]">{date}</p>
+
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={isDeleting}
+            className="cursor-pointer rounded-full border border-[#d9a6a6] px-5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#b76f6f] transition hover:-translate-y-[1px] hover:bg-[#d9a6a6] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDeleting ? "A apagar..." : "Apagar"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3">
@@ -496,6 +590,65 @@ function RSVPCard({ response }) {
     </article>
   );
 }
+
+function DeleteConfirmModal({ response, isDeleting, onCancel, onConfirm }) {
+  const peopleNames =
+    (response.people || [])
+      .map((person) => person.name)
+      .filter(Boolean)
+      .join(", ") || "esta resposta";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#4f5b49]/35 px-5 py-8 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-rsvp-title"
+    >
+      <div className="w-full max-w-lg rounded-[2rem] border border-[#d9a6a6]/45 bg-[#fbfaf5] p-7 text-center text-[#7f8f78] shadow-[0_24px_80px_rgba(79,91,73,0.22)]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-[#b76f6f]">
+          Confirmar remoção
+        </p>
+
+        <div className="gold-line mx-auto mt-5 max-w-[140px]" />
+
+        <h2
+          id="delete-rsvp-title"
+          className="mt-7 text-4xl font-extrabold leading-none tracking-[-0.05em] text-[#b7c4b0]"
+        >
+          Apagar RSVP?
+        </h2>
+
+        <p className="mx-auto mt-5 max-w-sm text-sm leading-6 text-[#8f9f8a]">
+          Vais apagar a resposta de{" "}
+          <span className="font-bold text-[#7f8f78]">{peopleNames}</span>. Esta
+          ação não pode ser desfeita.
+        </p>
+
+        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/55 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-[#cdb892] transition hover:-translate-y-[1px] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="cursor-pointer rounded-full border border-[#d9a6a6] bg-[#d9a6a6] px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white shadow-[0_10px_30px_rgba(217,166,166,0.35)] transition hover:-translate-y-[1px] hover:bg-[#b76f6f] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDeleting ? "A apagar..." : "Apagar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Info({ label, value }) {
   return (
     <div className="rounded-[1.3rem] border border-[#b7c4b0]/20 bg-[#fbfaf5]/55 p-4">
