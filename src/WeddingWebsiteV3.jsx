@@ -450,6 +450,10 @@ const guestList = [
   [["Tiago"], "Amigo", "singular"],
   [["Luís", "Família"], "Amigo", "plural"],
   [["Pina"], "Afilhado", "singular"],
+  [["Cristina", "Jorge"], "Queridos", "plural"],
+  [["Sil"], "Amigo", "singular"],
+  [["Vera", "Carlos", "Inês", "Matilde"], "Queridos primos", "plural"],
+  [["Stéphane"], "Amigo", "singular"],
 ];
 
 function slugify(text) {
