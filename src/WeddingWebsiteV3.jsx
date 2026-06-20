@@ -454,6 +454,7 @@ const guestList = [
   [["Sil"], "Amigo", "singular"],
   [["Vera", "Carlos", "Inês", "Matilde"], "Queridos primos", "plural"],
   [["Stéphane"], "Amigo", "singular"],
+  [["António", "Amélia"], "Queridos primos", "plural"],
 ];
 
 function slugify(text) {
@@ -480,6 +481,14 @@ const guests = Object.fromEntries(
     ];
   }),
 );
+
+const specialRsvpDeadlineSlugs = new Set([
+  "cristina",
+  "sil",
+  "vera",
+  "stephane",
+  "antonio",
+]);
 
 function formatNames(names) {
   if (names.length === 1) return names[0];
@@ -596,6 +605,9 @@ export default function WeddingWebsiteV3() {
 
   const { guestSlug } = useParams();
   const guest = guestSlug ? guests[guestSlug] : null;
+  const hasSpecialRsvpDeadline = guestSlug
+    ? specialRsvpDeadlineSlugs.has(guestSlug)
+    : false;
 
   const storageKey = `rsvp-form-${guestSlug || "default"}`;
 
@@ -1076,8 +1088,14 @@ export default function WeddingWebsiteV3() {
               <p className="mx-auto mt-8 max-w-xl text-lg font-light leading-8 text-[#8f9f8a]">
                 {guest?.type === "singular"
                   ? "A tua presença é o nosso melhor presente."
-                  : "A vossa presença é o nosso melhor presente."}{" "}
-                Confirmar até <span className="font-black">10.06.2026</span>.
+                  : "A vossa presença é o nosso melhor presente."}
+                {hasSpecialRsvpDeadline && (
+                  <>
+                    {" "}
+                    Confirmar até <span className="font-black">12.07.2026</span>
+                    .
+                  </>
+                )}
               </p>
             </div>
 
