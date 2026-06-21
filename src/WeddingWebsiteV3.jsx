@@ -454,6 +454,7 @@ const guestList = [
   [["Sil"], "Amigo", "singular"],
   [["Vera", "Carlos", "Inês", "Matilde"], "Queridos primos", "plural"],
   [["Stéphane"], "Amigo", "singular"],
+  [["João Pedro"], "Querido", "singular"],
   [["António", "Amélia"], "Queridos primos", "plural"],
 ];
 
@@ -488,6 +489,7 @@ const specialRsvpDeadlineSlugs = new Set([
   "vera",
   "stephane",
   "antonio",
+  "joao-pedro",
 ]);
 
 function formatNames(names) {
