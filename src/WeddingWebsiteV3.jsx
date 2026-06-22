@@ -456,6 +456,7 @@ const guestList = [
   [["Stéphane"], "Amigo", "singular"],
   [["João Pedro"], "Querido", "singular"],
   [["António", "Amélia"], "Queridos primos", "plural"],
+  [["Madalena"], "Querida", "singular"],
 ];
 
 function slugify(text) {
@@ -490,6 +491,7 @@ const specialRsvpDeadlineSlugs = new Set([
   "stephane",
   "antonio",
   "joao-pedro",
+  "madalena",
 ]);
 
 function formatNames(names) {
