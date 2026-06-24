@@ -457,6 +457,9 @@ const guestList = [
   [["João Pedro"], "Querido", "singular"],
   [["António", "Amélia"], "Queridos primos", "plural"],
   [["Madalena"], "Querida", "singular"],
+  [["Zé Miguel"], "Querido", "singular"],
+  [["Glória", "Carlos"], "Queridos", "plural"],
+  [["Rui"], "Amigo", "singular"],
 ];
 
 function slugify(text) {
@@ -492,6 +495,9 @@ const specialRsvpDeadlineSlugs = new Set([
   "antonio",
   "joao-pedro",
   "madalena",
+  "ze-miguel",
+  "gloria",
+  "rui",
 ]);
 
 function formatNames(names) {
@@ -1096,7 +1102,7 @@ export default function WeddingWebsiteV3() {
                 {hasSpecialRsvpDeadline && (
                   <>
                     {" "}
-                    Confirmar até <span className="font-black">12.07.2026</span>
+                    Confirmar até <span className="font-black">21.07.2026</span>
                     .
                   </>
                 )}
