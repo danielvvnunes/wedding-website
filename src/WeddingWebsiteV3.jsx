@@ -1102,7 +1102,7 @@ export default function WeddingWebsiteV3() {
                 {hasSpecialRsvpDeadline && (
                   <>
                     {" "}
-                    Confirmar até <span className="font-black">21.07.2026</span>
+                    Confirmar até <span className="font-black">10.08.2026</span>
                     .
                   </>
                 )}
