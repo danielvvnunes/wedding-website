@@ -13,6 +13,10 @@ import { Link } from "react-router-dom";
 
 import { useParams } from "react-router-dom";
 import { supabase } from "./lib/supabase";
+import {
+  guestInvitationQuery,
+  saveGuestInvitationSlug,
+} from "./lib/guestInvitation";
 import igrejaImg from "./assets/igreja.png";
 import quintaImg from "./assets/quinta.png";
 
@@ -499,8 +503,86 @@ const specialRsvpDeadlineSlugs = new Set([
   "ze-miguel",
   "gloria",
   "rui",
-  "antonio-simões",
+  "antonio-simoes",
 ]);
+
+const VOCE_TREATMENT_SLUGS = new Set(["antonio-simoes"]);
+
+function usesVoceTreatment(guestSlug) {
+  return VOCE_TREATMENT_SLUGS.has(guestSlug);
+}
+
+function getGuestCopy(guest, guestSlug) {
+  const isVoce = usesVoceTreatment(guestSlug);
+  const isPlural = guest?.type === "plural";
+
+  if (isVoce) {
+    return {
+      countdownText:
+        "O grande dia aproxima-se. Estamos ansiosos por partilhá-lo consigo.",
+      celebrationText:
+        "Os principais momentos da celebração, para viver connosco cada detalhe deste dia especial.",
+      rsvpTitle: "Confirme a sua presença",
+      rsvpSubtitle: "A sua presença é o nosso melhor presente.",
+      nameRequired: "Por favor preencha o nome",
+      memoryLabel: "Deixe-nos uma memória que viveu connosco!",
+      attendingConfirmed: "A sua presença ficou confirmada. 🤍",
+      notAttending: "Vamos sentir a sua falta. Obrigado por nos avisar.",
+      missingContact: "Por favor indique um contacto antes de enviar.",
+      submitError: "Não foi possível enviar a confirmação. Tente novamente.",
+      saveDateTitle: (multiple) => (multiple ? "Guardem a data" : "Guarde a data"),
+      saveDateText: (multiple) =>
+        multiple
+          ? "A sua presença ficou confirmada. Podem agora adicionar o casamento ao calendário para terem o dia sempre à mão."
+          : "A sua presença ficou confirmada. Pode agora adicionar o casamento ao calendário para ter o dia sempre à mão.",
+      confirmModalPrefix: "Vai enviar a confirmação de presença para",
+    };
+  }
+
+  if (isPlural || !guest) {
+    return {
+      countdownText:
+        "O grande dia aproxima-se. Estamos ansiosos por partilhá-lo convosco.",
+      celebrationText:
+        "Os principais momentos da celebração, para viverem connosco cada detalhe deste dia especial.",
+      rsvpTitle: "Confirmem a vossa presença",
+      rsvpSubtitle: "A vossa presença é o nosso melhor presente.",
+      nameRequired: "Por favor preenche o nome",
+      memoryLabel: "Deixa-nos uma memória que viveste connosco!",
+      attendingConfirmed: "A vossa presença ficou confirmada. 🤍",
+      notAttending: "Vamos sentir a vossa falta. Obrigado por nos avisarem.",
+      missingContact: "Por favor indica um contacto antes de enviar.",
+      submitError: "Não foi possível enviar a confirmação. Tenta novamente.",
+      saveDateTitle: (multiple) => (multiple ? "Guardem a data" : "Guarda a data"),
+      saveDateText: (multiple) =>
+        multiple
+          ? "A vossa presença ficou confirmada. Podem agora adicionar o casamento ao calendário para terem o dia sempre à mão."
+          : "A tua presença ficou confirmada. Podes agora adicionar o casamento ao calendário para teres o dia sempre à mão.",
+      confirmModalPrefix: "Vais enviar a confirmação de presença para",
+    };
+  }
+
+  return {
+    countdownText:
+      "O grande dia aproxima-se. Estamos ansiosos por partilhá-lo contigo.",
+    celebrationText:
+      "Os principais momentos da celebração, para viveres connosco cada detalhe deste dia especial.",
+    rsvpTitle: "Confirma a tua presença",
+    rsvpSubtitle: "A tua presença é o nosso melhor presente.",
+    nameRequired: "Por favor preenche o nome",
+    memoryLabel: "Deixa-nos uma memória que viveste connosco!",
+    attendingConfirmed: "A tua presença ficou confirmada. 🤍",
+    notAttending: "Vamos sentir a tua falta. Obrigado por nos avisares.",
+    missingContact: "Por favor indica um contacto antes de enviar.",
+    submitError: "Não foi possível enviar a confirmação. Tenta novamente.",
+    saveDateTitle: (multiple) => (multiple ? "Guardem a data" : "Guarda a data"),
+    saveDateText: (multiple) =>
+      multiple
+        ? "A vossa presença ficou confirmada. Podem agora adicionar o casamento ao calendário para terem o dia sempre à mão."
+        : "A tua presença ficou confirmada. Podes agora adicionar o casamento ao calendário para teres o dia sempre à mão.",
+    confirmModalPrefix: "Vais enviar a confirmação de presença para",
+  };
+}
 
 function formatNames(names) {
   if (names.length === 1) return names[0];
@@ -522,7 +604,7 @@ function getGuestMessage(guest, guestSlug) {
     );
   }
 
-  const isVoce = guestSlug === "antonio-simoes";
+  const isVoce = usesVoceTreatment(guestSlug);
   const singularForm = isVoce ? "estivesse presente" : "estivesses presente";
 
   return (
@@ -561,7 +643,9 @@ function useRevealOnScroll() {
   }, []);
 }
 
-function SectionNav() {
+function SectionNav({ guestSlug }) {
+  const conviteQuery = guestInvitationQuery(guestSlug);
+
   return (
     <header className="sticky top-0 z-40 border-b border-[#cdb892]/25 bg-[#eef3ea]/92 px-3 py-3 shadow-[0_8px_26px_rgba(143,159,138,0.12)] backdrop-blur-xl">
       <nav className="mx-auto max-w-6xl">
@@ -574,14 +658,14 @@ function SectionNav() {
           </a>
 
           <Link
-            to="/convemsaber"
+            to={`/convemsaber${conviteQuery}`}
             className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
           >
             Localização
           </Link>
 
           <Link
-            to="/galeria"
+            to={`/galeria${conviteQuery}`}
             className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
           >
             Galeria
@@ -620,11 +704,17 @@ export default function WeddingWebsiteV3() {
 
   const { guestSlug } = useParams();
   const guest = guestSlug ? guests[guestSlug] : null;
+  const copy = getGuestCopy(guest, guestSlug);
   const hasSpecialRsvpDeadline = guestSlug
     ? specialRsvpDeadlineSlugs.has(guestSlug)
     : false;
 
   const storageKey = `rsvp-form-${guestSlug || "default"}`;
+  const conviteQuery = guestInvitationQuery(guestSlug);
+
+  useEffect(() => {
+    saveGuestInvitationSlug(guestSlug);
+  }, [guestSlug]);
 
   const savedForm = (() => {
     try {
@@ -951,18 +1041,14 @@ export default function WeddingWebsiteV3() {
           </div>
         </section>
 
-        <SectionNav />
+        <SectionNav guestSlug={guestSlug} />
 
         <section id="countdown" className="section-green px-6 py-24 md:py-32">
           <div className="mx-auto max-w-6xl">
             <MinimalHeader
               eyebrow="Countdown"
               title="Estamos quase a dizer sim."
-              text={
-                guest?.type === "singular"
-                  ? "Os principais momentos da celebração, para viveres connosco cada detalhe deste dia especial."
-                  : "Os principais momentos da celebração, para viverem connosco cada detalhe deste dia especial."
-              }
+              text={copy.countdownText}
             />
 
             <div className="mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-x-8 gap-y-12 text-center sm:grid-cols-4">
@@ -988,11 +1074,7 @@ export default function WeddingWebsiteV3() {
             <MinimalHeader
               eyebrow="Timeline"
               title="O ritmo do dia"
-              text={
-                guest?.type === "singular"
-                  ? "Os principais momentos da celebração, para viveres connosco cada detalhe deste dia especial."
-                  : "Os principais momentos da celebração, para viverem connosco cada detalhe deste dia especial."
-              }
+              text={copy.celebrationText}
             />
             <div className="mt-20 space-y-12">
               <Timeline
@@ -1071,7 +1153,7 @@ export default function WeddingWebsiteV3() {
                 title="Igreja Matriz de Santa Iria de Azóia"
                 text="O lugar onde vamos dar início a este novo capítulo, rodeados de família e amigos."
                 cta="Ver localização"
-                href="/convemsaber#igreja"
+                href={`/convemsaber${conviteQuery}#igreja`}
               />
 
               <VenueText
@@ -1079,7 +1161,7 @@ export default function WeddingWebsiteV3() {
                 title="Quinta do Coração"
                 text="Continuamos o dia com brindes, comida, música e muitas memórias para guardar."
                 cta="Ver localização"
-                href="/convemsaber#quinta"
+                href={`/convemsaber${conviteQuery}#quinta`}
               />
             </div>
           </div>
@@ -1095,15 +1177,11 @@ export default function WeddingWebsiteV3() {
               <div className="gold-line mx-auto mt-6 max-w-[180px]" />
 
               <h2 className="mt-8 text-5xl font-extrabold  leading-[0.9] tracking-[-0.07em] text-[#b7c4b0] md:text-7xl">
-                {guest?.type === "singular"
-                  ? "Confirma a tua presença"
-                  : "Confirmem a vossa presença"}{" "}
+                {copy.rsvpTitle}{" "}
               </h2>
 
               <p className="mx-auto mt-8 max-w-xl text-lg font-light leading-8 text-[#8f9f8a]">
-                {guest?.type === "singular"
-                  ? "A tua presença é o nosso melhor presente."
-                  : "A vossa presença é o nosso melhor presente."}
+                {copy.rsvpSubtitle}
                 {hasSpecialRsvpDeadline && (
                   <>
                     {" "}
@@ -1178,9 +1256,7 @@ export default function WeddingWebsiteV3() {
                           required
                           value={person.name}
                           onInvalid={(e) =>
-                            e.target.setCustomValidity(
-                              "Por favor preenche o nome",
-                            )
+                            e.target.setCustomValidity(copy.nameRequired)
                           }
                           onInput={(e) => e.target.setCustomValidity("")}
                           disabled={isSubmitting || hasSubmittedSuccessfully}
@@ -1339,7 +1415,7 @@ export default function WeddingWebsiteV3() {
               {/* Notas */}
               <div className="space-y-2">
                 <label className="form-label">
-                  Deixa-nos uma memória que viveste connosco!
+                  {copy.memoryLabel}
                 </label>
                 <textarea
                   value={notes}
@@ -1361,13 +1437,10 @@ export default function WeddingWebsiteV3() {
               {submitStatus && (
                 <p className="pt-4 text-center text-sm font-semibold text-[#8f9f8a]">
                   {submitStatus === "attending" &&
-                    `Que alegria! ${people.length === 1 ? "A tua presença ficou confirmada. 🤍" : "A vossa presença ficou confirmada. 🤍"}`}
-                  {submitStatus === "not-attending" &&
-                    "Vamos sentir a vossa falta. Obrigado por nos avisarem."}
-                  {submitStatus === "missing-contact" &&
-                    "Por favor indica um contacto antes de enviar."}
-                  {submitStatus === "error" &&
-                    "Não foi possível enviar a confirmação. Tenta novamente."}
+                    `Que alegria! ${copy.attendingConfirmed}`}
+                  {submitStatus === "not-attending" && copy.notAttending}
+                  {submitStatus === "missing-contact" && copy.missingContact}
+                  {submitStatus === "error" && copy.submitError}
                 </p>
               )}
 
@@ -1438,13 +1511,11 @@ export default function WeddingWebsiteV3() {
                 </p>
 
                 <h3 className="mt-4 text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
-                  {people.length === 1 ? "Guarda a data" : "Guardem a data"}
+                  {copy.saveDateTitle(people.length > 1)}
                 </h3>
 
                 <p className="mx-auto mt-4 max-w-xl text-base font-light leading-7 text-[#8f9f8a]">
-                  {people.length === 1
-                    ? "A tua presença ficou confirmada. Podes agora adicionar o casamento ao calendário para teres o dia sempre à mão."
-                    : "A vossa presença ficou confirmada. Podem agora adicionar o casamento ao calendário para terem o dia sempre à mão."}
+                  {copy.saveDateText(people.length > 1)}
                 </p>
 
                 <button
@@ -1524,7 +1595,7 @@ export default function WeddingWebsiteV3() {
             </h3>
 
             <p className="mx-auto mt-4 max-w-md text-sm font-light leading-7 text-[#8f9f8a]">
-              Vais enviar a confirmação de presença para{" "}
+              {copy.confirmModalPrefix}{" "}
               <strong className="font-bold text-[#cdb892]">
                 {people.length} {people.length === 1 ? "pessoa" : "pessoas"}
               </strong>

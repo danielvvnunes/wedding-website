@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  getGuestInvitationPath,
+  saveGuestInvitationSlug,
+} from "./lib/guestInvitation";
 
 const styles = `
 @import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap");
@@ -57,6 +61,8 @@ const styles = `
 `;
 
 export default function GalleryPage() {
+  const [searchParams] = useSearchParams();
+  const invitationPath = getGuestInvitationPath(searchParams);
   const [name, setName] = useState("");
   const [files, setFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
@@ -65,6 +71,11 @@ export default function GalleryPage() {
   const [uploadedItems, setUploadedItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [sortOrder, setSortOrder] = useState("recent");
+
+  useEffect(() => {
+    const convite = searchParams.get("convite");
+    if (convite) saveGuestInvitationSlug(convite);
+  }, [searchParams]);
 
   useEffect(() => {
     async function loadGallery() {
@@ -205,7 +216,7 @@ export default function GalleryPage() {
       <section className="px-6 py-20 text-center md:py-28">
         <div className="absolute right-6 top-6 z-20 md:right-10 md:top-10">
           <Link
-            to="/"
+            to={invitationPath}
             className="
       inline-flex items-center gap-2
       rounded-full

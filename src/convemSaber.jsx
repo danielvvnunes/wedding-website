@@ -1,7 +1,12 @@
 // import hotel1Img from "./assets/hotel1.jpg";
 // import hotel2Img from "./assets/hotel2.jpg";
 // import hotel3Img from "./assets/hotel3.jpg";
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  getGuestInvitationPath,
+  saveGuestInvitationSlug,
+} from "./lib/guestInvitation";
 
 const styles = `
 @import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap");
@@ -74,13 +79,21 @@ const styles = `
 // ];
 
 export default function AccommodationAndLocations() {
+  const [searchParams] = useSearchParams();
+  const invitationPath = getGuestInvitationPath(searchParams);
+
+  useEffect(() => {
+    const convite = searchParams.get("convite");
+    if (convite) saveGuestInvitationSlug(convite);
+  }, [searchParams]);
+
   return (
     <main className="page-bg min-h-screen text-[#8f9f8a]">
       <style>{styles}</style>
       <section className="relative px-6 py-20 text-center md:py-28">
         <div className="absolute right-6 top-6 z-20 md:right-10 md:top-10">
           <Link
-            to="/"
+            to={invitationPath}
             className="
       inline-flex items-center gap-2
       rounded-full
