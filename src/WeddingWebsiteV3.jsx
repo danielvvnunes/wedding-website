@@ -460,6 +460,7 @@ const guestList = [
   [["Zé Miguel"], "Querido", "singular"],
   [["Glória", "Carlos"], "Queridos", "plural"],
   [["Rui"], "Amigo", "singular"],
+  [["António Simões"], "Sr.", "singular"],
 ];
 
 function slugify(text) {
@@ -498,6 +499,7 @@ const specialRsvpDeadlineSlugs = new Set([
   "ze-miguel",
   "gloria",
   "rui",
+  "antonio-simões",
 ]);
 
 function formatNames(names) {
@@ -510,7 +512,7 @@ function formatNames(names) {
   return `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}`;
 }
 
-function getGuestMessage(guest) {
+function getGuestMessage(guest, guestSlug) {
   if (!guest) {
     return (
       <>
@@ -520,6 +522,9 @@ function getGuestMessage(guest) {
     );
   }
 
+  const isVoce = guestSlug === "antonio-simoes";
+  const singularForm = isVoce ? "estivesse presente" : "estivesses presente";
+
   return (
     <>
       <span className="gold-accent font-semibold text-[1.1em]">
@@ -527,7 +532,7 @@ function getGuestMessage(guest) {
       </span>{" "}
       gostaríamos muito que{" "}
       {guest.type === "singular"
-        ? "estivesses presente"
+        ? singularForm
         : "estivessem presentes"}{" "}
       para celebrar este dia connosco.
     </>
@@ -921,7 +926,7 @@ export default function WeddingWebsiteV3() {
             </h1>
 
             <p className="mx-auto mt-10 max-w-2xl text-lg font-light leading-8 text-[#8f9f8a]">
-              {getGuestMessage(guest)}
+              {getGuestMessage(guest, guestSlug)}
             </p>
 
             <div className="mx-auto mt-16 grid max-w-3xl gap-8 text-center text-xs font-semibold uppercase tracking-[0.34em] text-[#b7c4b0] sm:grid-cols-3">
