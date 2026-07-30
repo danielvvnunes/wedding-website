@@ -403,7 +403,7 @@ const guestList = [
   [["Daniela"], "Querida Amiga", "singular"],
   [["Catarina Laginhas", "Família"], "Querida Amiga", "plural"],
   [["João Fernandes"], "Querido Amigo", "singular"],
-  [["Bruno Vidal"], "Querido Amigo", "singular"],
+  [["Bruno", "Marta"], "Queridos Amigos", "plural"],
   [["João Azenha"], "Querido Amigo", "singular"],
   [["Mariana Martins"], "Querida Amiga", "singular"],
   [["Miguel"], "Querido Amigo", "singular"],
@@ -530,7 +530,8 @@ function getGuestCopy(guest, guestSlug) {
       notAttending: "Vamos sentir a sua falta. Obrigado por nos avisar.",
       missingContact: "Por favor indique um contacto antes de enviar.",
       submitError: "Não foi possível enviar a confirmação. Tente novamente.",
-      saveDateTitle: (multiple) => (multiple ? "Guardem a data" : "Guarde a data"),
+      saveDateTitle: (multiple) =>
+        multiple ? "Guardem a data" : "Guarde a data",
       saveDateText: (multiple) =>
         multiple
           ? "A sua presença ficou confirmada. Podem agora adicionar o casamento ao calendário para terem o dia sempre à mão."
@@ -553,7 +554,8 @@ function getGuestCopy(guest, guestSlug) {
       notAttending: "Vamos sentir a vossa falta. Obrigado por nos avisarem.",
       missingContact: "Por favor indica um contacto antes de enviar.",
       submitError: "Não foi possível enviar a confirmação. Tenta novamente.",
-      saveDateTitle: (multiple) => (multiple ? "Guardem a data" : "Guarda a data"),
+      saveDateTitle: (multiple) =>
+        multiple ? "Guardem a data" : "Guarda a data",
       saveDateText: (multiple) =>
         multiple
           ? "A vossa presença ficou confirmada. Podem agora adicionar o casamento ao calendário para terem o dia sempre à mão."
@@ -575,7 +577,8 @@ function getGuestCopy(guest, guestSlug) {
     notAttending: "Vamos sentir a tua falta. Obrigado por nos avisares.",
     missingContact: "Por favor indica um contacto antes de enviar.",
     submitError: "Não foi possível enviar a confirmação. Tenta novamente.",
-    saveDateTitle: (multiple) => (multiple ? "Guardem a data" : "Guarda a data"),
+    saveDateTitle: (multiple) =>
+      multiple ? "Guardem a data" : "Guarda a data",
     saveDateText: (multiple) =>
       multiple
         ? "A vossa presença ficou confirmada. Podem agora adicionar o casamento ao calendário para terem o dia sempre à mão."
@@ -613,10 +616,8 @@ function getGuestMessage(guest, guestSlug) {
         {guest.greeting} {formatNames(guest.names)},
       </span>{" "}
       gostaríamos muito que{" "}
-      {guest.type === "singular"
-        ? singularForm
-        : "estivessem presentes"}{" "}
-      para celebrar este dia connosco.
+      {guest.type === "singular" ? singularForm : "estivessem presentes"} para
+      celebrar este dia connosco.
     </>
   );
 }
@@ -1414,9 +1415,7 @@ export default function WeddingWebsiteV3() {
 
               {/* Notas */}
               <div className="space-y-2">
-                <label className="form-label">
-                  {copy.memoryLabel}
-                </label>
+                <label className="form-label">{copy.memoryLabel}</label>
                 <textarea
                   value={notes}
                   disabled={isSubmitting || hasSubmittedSuccessfully}
