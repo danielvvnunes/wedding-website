@@ -403,7 +403,7 @@ const guestList = [
   [["Daniela"], "Querida Amiga", "singular"],
   [["Catarina Laginhas", "Família"], "Querida Amiga", "plural"],
   [["João Fernandes"], "Querido Amigo", "singular"],
-  [["Bruno", "Marta"], "Queridos Amigos", "plural"],
+  [["Bruno", "Marta"], "Queridos Amigos", "plural", "bruno-marta"],
   [["João Azenha"], "Querido Amigo", "singular"],
   [["Mariana Martins"], "Querida Amiga", "singular"],
   [["Miguel"], "Querido Amigo", "singular"],
@@ -477,9 +477,8 @@ function slugify(text) {
 }
 
 const guests = Object.fromEntries(
-  guestList.map(([names, greeting, type]) => {
-    const firstName = names[0]; // 👈 só o primeiro
-    const slug = slugify(firstName);
+  guestList.map(([names, greeting, type, customSlug]) => {
+    const slug = customSlug ?? slugify(names[0]);
 
     return [
       slug,
