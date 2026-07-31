@@ -100,13 +100,119 @@ function formatAdminDate(dateValue) {
   }).format(new Date(dateValue));
 }
 
+function formatWeighted(value) {
+  if (Number.isInteger(value)) return String(value);
+
+  return value.toLocaleString("pt-PT", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function getAttendingPeople(people = []) {
+  return people.filter((person) => person.attending === "yes");
+}
+
+function getPersonWeight(person) {
+  if (person.attending !== "yes") return 0;
+
+  switch (person.ageGroup) {
+    case "child_under_3":
+      return 0;
+    case "child_under_9":
+      return 0.5;
+    default:
+      return 1;
+  }
+}
+
+function getPeopleCounts(people = []) {
+  const attendingPeople = getAttendingPeople(people);
+
+  return {
+    raw: attendingPeople.length,
+    weighted: attendingPeople.reduce(
+      (total, person) => total + getPersonWeight(person),
+      0,
+    ),
+  };
+}
+
+function computeAdminStats(responses) {
+  const allPeople = responses.flatMap((response) => response.people || []);
+  const attendingPeople = getAttendingPeople(allPeople);
+  const declinedPeople = allPeople.filter(
+    (person) => person.attending === "no",
+  );
+
+  const totals = getPeopleCounts(allPeople);
+  const noivo = { raw: 0, weighted: 0 };
+  const noiva = { raw: 0, weighted: 0 };
+  const unassigned = { raw: 0, weighted: 0 };
+
+  responses.forEach((response) => {
+    const counts = getPeopleCounts(response.people || []);
+    const bucket =
+      response.side === "noivo"
+        ? noivo
+        : response.side === "noiva"
+          ? noiva
+          : unassigned;
+
+    bucket.raw += counts.raw;
+    bucket.weighted += counts.weighted;
+  });
+
+  return {
+    confirmed: totals.raw,
+    weighted: totals.weighted,
+    declined: declinedPeople.length,
+    adults: attendingPeople.filter((person) => person.ageGroup === "adult")
+      .length,
+    childrenUnder3: attendingPeople.filter(
+      (person) => person.ageGroup === "child_under_3",
+    ).length,
+    childrenUnder9: attendingPeople.filter(
+      (person) => person.ageGroup === "child_under_9",
+    ).length,
+    noivo,
+    noiva,
+    unassigned,
+  };
+}
+
+function formatAgeGroup(ageGroup) {
+  switch (ageGroup) {
+    case "child_under_3":
+      return "Bebé (0–3 anos)";
+    case "child_under_9":
+      return "Criança (4–9 anos)";
+    default:
+      return "Adulto";
+  }
+}
+
+function formatSideLabel(side) {
+  switch (side) {
+    case "noivo":
+      return "Daniel";
+    case "noiva":
+      return "Francisca";
+    default:
+      return "Por atribuir";
+  }
+}
+
 export default function AdminRSVP() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [deletingIds, setDeletingIds] = useState([]);
+  const [updatingIds, setUpdatingIds] = useState([]);
   const [pendingDeleteResponse, setPendingDeleteResponse] = useState(null);
+  const [pendingDeletePerson, setPendingDeletePerson] = useState(null);
   const [deleteError, setDeleteError] = useState("");
+  const [updateError, setUpdateError] = useState("");
 
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
@@ -161,38 +267,7 @@ export default function AdminRSVP() {
     };
   }, [isAuthenticated, fetchResponses]);
 
-  const stats = useMemo(() => {
-    const allPeople = responses.flatMap((response) => response.people || []);
-
-    const attendingPeople = allPeople.filter(
-      (person) => person.attending === "yes",
-    );
-
-    const declinedPeople = allPeople.filter(
-      (person) => person.attending === "no",
-    );
-
-    const childrenUnder3 = attendingPeople.filter(
-      (person) => person.ageGroup === "child_under_3",
-    ).length;
-
-    const childrenUnder9 = attendingPeople.filter(
-      (person) => person.ageGroup === "child_under_9",
-    ).length;
-
-    const adults = attendingPeople.filter(
-      (person) => person.ageGroup === "adult",
-    ).length;
-
-    return {
-      confirmed: attendingPeople.length,
-      declined: declinedPeople.length,
-      totalPeople: attendingPeople.length,
-      adults,
-      childrenUnder3,
-      childrenUnder9,
-    };
-  }, [responses]);
+  const stats = useMemo(() => computeAdminStats(responses), [responses]);
 
   const attendanceData = [
     { name: "Confirmados", value: stats.confirmed },
@@ -216,6 +291,86 @@ export default function AdminRSVP() {
       ),
     );
   }, [responses, searchTerm]);
+
+  async function removePersonFromResponse(responseId, personIndex) {
+    const response = responses.find((entry) => entry.id === responseId);
+    if (!response) return;
+
+    setDeleteError("");
+    setUpdatingIds((currentIds) => [...currentIds, responseId]);
+
+    const people = [...(response.people || [])];
+    people.splice(personIndex, 1);
+
+    if (people.length === 0) {
+      setUpdatingIds((currentIds) =>
+        currentIds.filter((currentId) => currentId !== responseId),
+      );
+      await deleteResponse(responseId);
+      setPendingDeletePerson(null);
+      return;
+    }
+
+    const attendingCount = people.filter(
+      (person) => person.attending === "yes",
+    ).length;
+
+    const { data, error } = await supabase
+      .from("rsvp")
+      .update({
+        people,
+        attending_count: attendingCount,
+        not_attending_count: people.length - attendingCount,
+      })
+      .eq("id", responseId)
+      .select("id");
+
+    if (error) {
+      console.error(error);
+      setDeleteError("Erro ao remover pessoa. Tenta novamente.");
+    } else if (!data?.length) {
+      setDeleteError(
+        "A pessoa não foi removida na base de dados. Confirma a policy UPDATE da tabela rsvp no Supabase.",
+      );
+    } else {
+      await fetchResponses();
+      setPendingDeletePerson(null);
+    }
+
+    setUpdatingIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== responseId),
+    );
+  }
+
+  async function updateResponseSide(responseId, side) {
+    setUpdateError("");
+    setUpdatingIds((currentIds) => [...currentIds, responseId]);
+
+    const { data, error } = await supabase
+      .from("rsvp")
+      .update({ side: side || null })
+      .eq("id", responseId)
+      .select("id");
+
+    if (error) {
+      console.error(error);
+      setUpdateError(
+        error.message?.includes("side")
+          ? "Falta a coluna side na tabela rsvp. Corre o SQL em supabase/add_rsvp_side.sql."
+          : "Erro ao atualizar a atribuição. Tenta novamente.",
+      );
+    } else if (!data?.length) {
+      setUpdateError(
+        "A atribuição não foi guardada. Confirma a policy UPDATE da tabela rsvp no Supabase.",
+      );
+    } else {
+      await fetchResponses();
+    }
+
+    setUpdatingIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== responseId),
+    );
+  }
 
   async function deleteResponse(responseId) {
     setDeleteError("");
@@ -254,6 +409,7 @@ export default function AdminRSVP() {
         Tipo: person.ageGroup ?? "",
         RestricoesAlimentares: person.dietary ?? "",
         NotasGerais: response.notes ?? "",
+        Atribuicao: formatSideLabel(response.side),
         Data: formatAdminDate(response.created_at),
       })),
     );
@@ -267,6 +423,7 @@ export default function AdminRSVP() {
         Tipo: "",
         RestricoesAlimentares: "",
         NotasGerais: "",
+        Atribuicao: "",
         Data: "",
       },
     );
@@ -366,13 +523,41 @@ export default function AdminRSVP() {
             </p>
           </header>
 
-          <div className="mb-8 grid gap-4 md:grid-cols-5">
-            <StatCard label="Confirmados" value={stats.totalPeople} />
+          <div className="mb-8 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+            <StatCard label="Confirmados" value={stats.confirmed} />
+            <StatCard
+              label="Confirmados (pond.)"
+              value={formatWeighted(stats.weighted)}
+            />
             <StatCard label="Não vão" value={stats.declined} />
             <StatCard label="Adultos" value={stats.adults} />
             <StatCard label="Crianças ≤3" value={stats.childrenUnder3} />
             <StatCard label="Crianças ≤9" value={stats.childrenUnder9} />
           </div>
+
+          <div className="mb-8 grid gap-4 md:grid-cols-3">
+            <SideStatCard
+              label="Daniel"
+              raw={stats.noivo.raw}
+              weighted={stats.noivo.weighted}
+            />
+            <SideStatCard
+              label="Francisca"
+              raw={stats.noiva.raw}
+              weighted={stats.noiva.weighted}
+            />
+            <SideStatCard
+              label="Por atribuir"
+              raw={stats.unassigned.raw}
+              weighted={stats.unassigned.weighted}
+            />
+          </div>
+
+          {updateError && (
+            <p className="mb-8 rounded-[1.3rem] border border-[#d9a6a6]/45 bg-[#d9a6a6]/15 px-4 py-3 text-sm leading-6 text-[#b76f6f]">
+              {updateError}
+            </p>
+          )}
 
         <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -415,8 +600,12 @@ export default function AdminRSVP() {
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-4 grid gap-4 text-center md:grid-cols-4">
-            <MiniStat label="Total" value={stats.totalPeople} />
+          <div className="mt-4 grid gap-4 text-center md:grid-cols-5">
+            <MiniStat label="Brutos" value={stats.confirmed} />
+            <MiniStat
+              label="Ponderados"
+              value={formatWeighted(stats.weighted)}
+            />
             <MiniStat label="Adultos" value={stats.adults} />
             <MiniStat label="Crianças ≤3" value={stats.childrenUnder3} />
             <MiniStat label="Crianças ≤9" value={stats.childrenUnder9} />
@@ -473,13 +662,38 @@ export default function AdminRSVP() {
                   setDeleteError("");
                   setPendingDeleteResponse(response);
                 }}
+                onRemovePerson={(personIndex) => {
+                  setDeleteError("");
+                  setPendingDeletePerson({ response, personIndex });
+                }}
+                onSideChange={(side) => updateResponseSide(response.id, side)}
                 isDeleting={deletingIds.includes(response.id)}
+                isUpdating={updatingIds.includes(response.id)}
               />
             ))}
           </div>
         )}
         </div>
       </main>
+
+      {pendingDeletePerson && (
+        <DeletePersonModal
+          response={pendingDeletePerson.response}
+          personIndex={pendingDeletePerson.personIndex}
+          isDeleting={updatingIds.includes(pendingDeletePerson.response.id)}
+          error={deleteError}
+          onCancel={() => {
+            setDeleteError("");
+            setPendingDeletePerson(null);
+          }}
+          onConfirm={() =>
+            removePersonFromResponse(
+              pendingDeletePerson.response.id,
+              pendingDeletePerson.personIndex,
+            )
+          }
+        />
+      )}
 
       {pendingDeleteResponse && (
         <DeleteConfirmModal
@@ -494,6 +708,24 @@ export default function AdminRSVP() {
         />
       )}
     </>
+  );
+}
+
+function SideStatCard({ label, raw, weighted }) {
+  return (
+    <div className="rounded-[1.6rem] border border-[#b7c4b0]/35 bg-white/40 p-5 text-center shadow-[0_10px_30px_rgba(143,159,138,0.10)] backdrop-blur">
+      <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#8f9f8a]">
+        {label}
+      </div>
+
+      <div className="mt-4 text-3xl font-extrabold tracking-[-0.06em] text-[#b7c4b0]">
+        {raw}
+      </div>
+
+      <div className="mt-2 text-sm text-[#8f9f8a]">
+        {formatWeighted(weighted)} ponderados
+      </div>
+    </div>
   );
 }
 
@@ -520,7 +752,14 @@ function MiniStat({ label, value }) {
   );
 }
 
-function RSVPCard({ response, onDelete, isDeleting }) {
+function RSVPCard({
+  response,
+  onDelete,
+  onRemovePerson,
+  onSideChange,
+  isDeleting,
+  isUpdating,
+}) {
   const date = formatAdminDate(response.created_at);
 
   const people = response.people || [];
@@ -530,24 +769,15 @@ function RSVPCard({ response, onDelete, isDeleting }) {
   const declinedCount = people.filter(
     (person) => person.attending === "no",
   ).length;
-
-  function formatAgeGroup(ageGroup) {
-    switch (ageGroup) {
-      case "child_under_3":
-        return "Bebé (0–3 anos)";
-      case "child_under_9":
-        return "Criança (4–9 anos)";
-      default:
-        return "Adulto";
-    }
-  }
+  const entryCounts = getPeopleCounts(people);
 
   return (
     <article className="rounded-[2rem] border border-[#b7c4b0]/35 bg-white/45 p-6 shadow-[0_12px_40px_rgba(143,159,138,0.10)] backdrop-blur">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <span className="inline-flex rounded-full bg-[#b7c4b0]/18 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#7f8f78]">
-            {attendingCount} confirmados · {declinedCount} não vão
+            {attendingCount} confirmados · {declinedCount} não vão ·{" "}
+            {formatWeighted(entryCounts.weighted)} pond.
           </span>
 
           <h2 className="mt-4 text-3xl font-extrabold leading-none tracking-[-0.04em] text-[#b7c4b0]">
@@ -561,13 +791,19 @@ function RSVPCard({ response, onDelete, isDeleting }) {
         <div className="flex flex-col items-start gap-3 md:items-end">
           <p className="text-sm text-[#cdb892]">{date}</p>
 
+          <SideSelector
+            value={response.side}
+            disabled={isDeleting || isUpdating}
+            onChange={onSideChange}
+          />
+
           <button
             type="button"
             onClick={onDelete}
-            disabled={isDeleting}
+            disabled={isDeleting || isUpdating}
             className="cursor-pointer rounded-full border border-[#d9a6a6] px-5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#b76f6f] transition hover:-translate-y-[1px] hover:bg-[#d9a6a6] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isDeleting ? "A apagar..." : "Apagar"}
+            {isDeleting ? "A apagar..." : "Apagar entrada"}
           </button>
         </div>
       </div>
@@ -590,19 +826,40 @@ function RSVPCard({ response, onDelete, isDeleting }) {
                 </p>
               </div>
 
-              <span
-                className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${
-                  person.attending === "yes"
-                    ? "bg-[#b7c4b0]/18 text-[#7f8f78]"
-                    : "bg-[#d9a6a6]/25 text-[#b76f6f]"
-                }`}
-              >
-                {person.attending === "yes" ? "Vai" : "Não vai"}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${
+                    person.attending === "yes"
+                      ? "bg-[#b7c4b0]/18 text-[#7f8f78]"
+                      : "bg-[#d9a6a6]/25 text-[#b76f6f]"
+                  }`}
+                >
+                  {person.attending === "yes" ? "Vai" : "Não vai"}
+                </span>
+
+                {people.length >= 2 && (
+                  <button
+                    type="button"
+                    onClick={() => onRemovePerson(index)}
+                    disabled={isDeleting || isUpdating}
+                    className="cursor-pointer rounded-full border border-[#d9a6a6]/70 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#b76f6f] transition hover:bg-[#d9a6a6] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Info label="Tipo" value={formatAgeGroup(person.ageGroup)} />{" "}
+              <Info label="Tipo" value={formatAgeGroup(person.ageGroup)} />
+              <Info
+                label="Peso"
+                value={
+                  person.attending === "yes"
+                    ? formatWeighted(getPersonWeight(person))
+                    : "—"
+                }
+              />
               <Info
                 label="Restrições alimentares"
                 value={person.dietary || "Sem restrições"}
@@ -621,6 +878,104 @@ function RSVPCard({ response, onDelete, isDeleting }) {
         </div>
       )}
     </article>
+  );
+}
+
+function SideSelector({ value, onChange, disabled }) {
+  const options = [
+    { id: "", label: "Por atribuir" },
+    { id: "noivo", label: "Daniel" },
+    { id: "noiva", label: "Francisca" },
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const isActive = (value || "") === option.id;
+
+        return (
+          <button
+            key={option.id || "unset"}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(option.id || null)}
+            className={`cursor-pointer rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              isActive
+                ? "border border-[#cdb892] bg-[#cdb892] text-white"
+                : "border border-[#cdb892]/45 bg-white/55 text-[#cdb892] hover:bg-[#cdb892]/10"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function DeletePersonModal({
+  response,
+  personIndex,
+  isDeleting,
+  error,
+  onCancel,
+  onConfirm,
+}) {
+  const person = (response.people || [])[personIndex];
+  const personName = person?.name || `Pessoa ${personIndex + 1}`;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#4f5b49]/35 px-5 py-8 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-person-title"
+    >
+      <div className="w-full max-w-lg rounded-[2rem] border border-[#d9a6a6]/45 bg-[#fbfaf5] p-7 text-center text-[#7f8f78] shadow-[0_24px_80px_rgba(79,91,73,0.22)]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-[#b76f6f]">
+          Remover pessoa
+        </p>
+
+        <div className="gold-line mx-auto mt-5 max-w-[140px]" />
+
+        <h2
+          id="delete-person-title"
+          className="mt-7 text-4xl font-extrabold leading-none tracking-[-0.05em] text-[#b7c4b0]"
+        >
+          Remover {personName}?
+        </h2>
+
+        <p className="mx-auto mt-5 max-w-sm text-sm leading-6 text-[#8f9f8a]">
+          Esta pessoa será retirada desta resposta. As restantes mantêm-se.
+        </p>
+
+        {error && (
+          <p className="mt-5 rounded-[1.2rem] border border-[#d9a6a6]/45 bg-[#d9a6a6]/15 px-4 py-3 text-sm leading-6 text-[#b76f6f]">
+            {error}
+          </p>
+        )}
+
+        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/55 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-[#cdb892] transition hover:-translate-y-[1px] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="cursor-pointer rounded-full border border-[#d9a6a6] bg-[#d9a6a6] px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white shadow-[0_10px_30px_rgba(217,166,166,0.35)] transition hover:-translate-y-[1px] hover:bg-[#b76f6f] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDeleting ? "A remover..." : "Remover pessoa"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
