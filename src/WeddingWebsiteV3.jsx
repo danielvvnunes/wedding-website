@@ -1357,9 +1357,9 @@ export default function WeddingWebsiteV3() {
   "
                         >
                           <option value="adult">Adulto</option>
-                          <option value="child_under_3">Bebé (0-3 anos)</option>
+                          <option value="child_under_3">Bebé (0-2 anos)</option>
                           <option value="child_under_9">
-                            Criança (4-9 anos)
+                            Criança (3-9 anos)
                           </option>
                         </select>
                       </div>

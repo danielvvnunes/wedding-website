@@ -138,6 +138,56 @@ function getPeopleCounts(people = []) {
   };
 }
 
+function normalizePersonName(name) {
+  return (name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-PT");
+}
+
+function getFirstName(name) {
+  return normalizePersonName(name).split(/\s+/)[0];
+}
+
+function isCoupleResponse(response) {
+  const firstNames = (response.people || []).map((person) =>
+    getFirstName(person.name),
+  );
+
+  return firstNames.includes("daniel") && firstNames.includes("francisca");
+}
+
+function getPersonSide(person, response) {
+  if (isCoupleResponse(response)) {
+    const firstName = getFirstName(person.name);
+    if (firstName === "daniel") return "noivo";
+    if (firstName === "francisca") return "noiva";
+  }
+
+  if (response.side === "noivo") return "noivo";
+  if (response.side === "noiva") return "noiva";
+
+  return null;
+}
+
+function responseMatchesSideFilter(response, sideFilter) {
+  if (sideFilter === "all") return true;
+
+  if (sideFilter === "unassigned") {
+    if (isCoupleResponse(response)) return false;
+    return response.side !== "noivo" && response.side !== "noiva";
+  }
+
+  if (isCoupleResponse(response)) {
+    return (response.people || []).some(
+      (person) => getPersonSide(person, response) === sideFilter,
+    );
+  }
+
+  return response.side === sideFilter;
+}
+
 function computeAdminStats(responses) {
   const allPeople = responses.flatMap((response) => response.people || []);
   const attendingPeople = getAttendingPeople(allPeople);
@@ -151,6 +201,25 @@ function computeAdminStats(responses) {
   const unassigned = { raw: 0, weighted: 0 };
 
   responses.forEach((response) => {
+    if (isCoupleResponse(response)) {
+      getAttendingPeople(response.people || []).forEach((person) => {
+        const side = getPersonSide(person, response);
+        const weight = getPersonWeight(person);
+
+        if (side === "noivo") {
+          noivo.raw += 1;
+          noivo.weighted += weight;
+        } else if (side === "noiva") {
+          noiva.raw += 1;
+          noiva.weighted += weight;
+        } else {
+          unassigned.raw += 1;
+          unassigned.weighted += weight;
+        }
+      });
+      return;
+    }
+
     const counts = getPeopleCounts(response.people || []);
     const bucket =
       response.side === "noivo"
@@ -184,9 +253,9 @@ function computeAdminStats(responses) {
 function formatAgeGroup(ageGroup) {
   switch (ageGroup) {
     case "child_under_3":
-      return "Bebé (0–3 anos)";
+      return "Bebé (0–2 anos)";
     case "child_under_9":
-      return "Criança (4–9 anos)";
+      return "Criança (3–9 anos)";
     default:
       return "Adulto";
   }
@@ -207,6 +276,7 @@ export default function AdminRSVP() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sideFilter, setSideFilter] = useState("all");
   const [deletingIds, setDeletingIds] = useState([]);
   const [updatingIds, setUpdatingIds] = useState([]);
   const [pendingDeleteResponse, setPendingDeleteResponse] = useState(null);
@@ -279,18 +349,50 @@ export default function AdminRSVP() {
   const filteredResponses = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-PT");
 
-    if (!normalizedSearch) {
-      return responses;
-    }
+    return responses.filter((response) => {
+      if (!responseMatchesSideFilter(response, sideFilter)) return false;
 
-    return responses.filter((response) =>
-      (response.people || []).some((person) =>
+      if (!normalizedSearch) return true;
+
+      return (response.people || []).some((person) =>
         (person.name || "")
           .toLocaleLowerCase("pt-PT")
           .includes(normalizedSearch),
-      ),
+      );
+    });
+  }, [responses, searchTerm, sideFilter]);
+
+  async function updatePersonAgeGroup(responseId, personIndex, ageGroup) {
+    const response = responses.find((entry) => entry.id === responseId);
+    if (!response) return;
+
+    setUpdateError("");
+    setUpdatingIds((currentIds) => [...currentIds, responseId]);
+
+    const people = [...(response.people || [])];
+    people[personIndex] = { ...people[personIndex], ageGroup };
+
+    const { data, error } = await supabase
+      .from("rsvp")
+      .update({ people })
+      .eq("id", responseId)
+      .select("id");
+
+    if (error) {
+      console.error(error);
+      setUpdateError("Erro ao atualizar a faixa etária. Tenta novamente.");
+    } else if (!data?.length) {
+      setUpdateError(
+        "A faixa etária não foi guardada. Confirma a policy UPDATE da tabela rsvp no Supabase.",
+      );
+    } else {
+      await fetchResponses();
+    }
+
+    setUpdatingIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== responseId),
     );
-  }, [responses, searchTerm]);
+  }
 
   async function removePersonFromResponse(responseId, personIndex) {
     const response = responses.find((entry) => entry.id === responseId);
@@ -409,7 +511,7 @@ export default function AdminRSVP() {
         Tipo: person.ageGroup ?? "",
         RestricoesAlimentares: person.dietary ?? "",
         NotasGerais: response.notes ?? "",
-        Atribuicao: formatSideLabel(response.side),
+        Atribuicao: formatSideLabel(getPersonSide(person, response)),
         Data: formatAdminDate(response.created_at),
       })),
     );
@@ -612,8 +714,8 @@ export default function AdminRSVP() {
           </div>
         </section>
 
-        <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
+        <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="space-y-3">
             <input
               type="search"
               value={searchTerm}
@@ -622,8 +724,10 @@ export default function AdminRSVP() {
               className="admin-field"
             />
 
-            {searchTerm.trim() && (
-              <p className="mt-2 text-sm text-[#8f9f8a]">
+            <SideFilter value={sideFilter} onChange={setSideFilter} />
+
+            {(searchTerm.trim() || sideFilter !== "all") && (
+              <p className="text-sm text-[#8f9f8a]">
                 {filteredResponses.length} de {responses.length} respostas
               </p>
             )}
@@ -667,6 +771,9 @@ export default function AdminRSVP() {
                   setPendingDeletePerson({ response, personIndex });
                 }}
                 onSideChange={(side) => updateResponseSide(response.id, side)}
+                onAgeGroupChange={(personIndex, ageGroup) =>
+                  updatePersonAgeGroup(response.id, personIndex, ageGroup)
+                }
                 isDeleting={deletingIds.includes(response.id)}
                 isUpdating={updatingIds.includes(response.id)}
               />
@@ -757,6 +864,7 @@ function RSVPCard({
   onDelete,
   onRemovePerson,
   onSideChange,
+  onAgeGroupChange,
   isDeleting,
   isUpdating,
 }) {
@@ -792,6 +900,7 @@ function RSVPCard({
           <p className="text-sm text-[#cdb892]">{date}</p>
 
           <SideSelector
+            response={response}
             value={response.side}
             disabled={isDeleting || isUpdating}
             onChange={onSideChange}
@@ -851,7 +960,25 @@ function RSVPCard({
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Info label="Tipo" value={formatAgeGroup(person.ageGroup)} />
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#cdb892]">
+                  Tipo
+                </p>
+                {person.attending === "yes" ? (
+                  <select
+                    value={person.ageGroup || "adult"}
+                    disabled={isDeleting || isUpdating}
+                    onChange={(e) => onAgeGroupChange(index, e.target.value)}
+                    className="admin-field py-3 text-sm"
+                  >
+                    <option value="adult">Adulto (1)</option>
+                    <option value="child_under_9">Criança 3-9 anos (0,5)</option>
+                    <option value="child_under_3">Bebé 0-2 anos (0)</option>
+                  </select>
+                ) : (
+                  <p className="text-[#8f9f8a]">{formatAgeGroup(person.ageGroup)}</p>
+                )}
+              </div>
               <Info
                 label="Peso"
                 value={
@@ -881,7 +1008,52 @@ function RSVPCard({
   );
 }
 
-function SideSelector({ value, onChange, disabled }) {
+function SideFilter({ value, onChange }) {
+  const options = [
+    { id: "all", label: "Todos" },
+    { id: "noivo", label: "Daniel" },
+    { id: "noiva", label: "Francisca" },
+    { id: "unassigned", label: "Por atribuir" },
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const isActive = value === option.id;
+
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            className={`cursor-pointer rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition ${
+              isActive
+                ? "border border-[#cdb892] bg-[#cdb892] text-white"
+                : "border border-[#cdb892]/45 bg-white/55 text-[#cdb892] hover:bg-[#cdb892]/10"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SideSelector({ response, value, onChange, disabled }) {
+  if (isCoupleResponse(response)) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        <span className="rounded-full border border-[#cdb892] bg-[#cdb892] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+          Daniel
+        </span>
+        <span className="rounded-full border border-[#cdb892] bg-[#cdb892] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+          Francisca
+        </span>
+      </div>
+    );
+  }
+
   const options = [
     { id: "", label: "Por atribuir" },
     { id: "noivo", label: "Daniel" },
