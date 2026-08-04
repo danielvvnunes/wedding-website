@@ -464,7 +464,7 @@ const guestList = [
   [["Zé Miguel"], "Querido", "singular"],
   [["Glória", "Carlos"], "Queridos", "plural"],
   [["Rui"], "Amigo", "singular"],
-  [["Jorge"], "Querido", "singular"],
+  [["Jorge"], "Amigo", "singular"],
   [["António Simões"], "Sr.", "singular"],
 ];
 
