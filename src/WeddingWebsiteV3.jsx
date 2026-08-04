@@ -464,6 +464,7 @@ const guestList = [
   [["Zé Miguel"], "Querido", "singular"],
   [["Glória", "Carlos"], "Queridos", "plural"],
   [["Rui"], "Amigo", "singular"],
+  [["Jorge"], "Querido", "singular"],
   [["António Simões"], "Sr.", "singular"],
 ];
 
@@ -491,19 +492,24 @@ const guests = Object.fromEntries(
   }),
 );
 
-const specialRsvpDeadlineSlugs = new Set([
-  "cristina",
-  "sil",
-  "vera",
-  "stephane",
-  "antonio",
-  "joao-pedro",
-  "madalena",
-  "ze-miguel",
-  "gloria",
-  "rui",
-  "antonio-simoes",
-]);
+const specialRsvpDeadlines = {
+  cristina: "10.08.2026",
+  sil: "10.08.2026",
+  vera: "10.08.2026",
+  stephane: "10.08.2026",
+  antonio: "10.08.2026",
+  "joao-pedro": "10.08.2026",
+  madalena: "10.08.2026",
+  "ze-miguel": "10.08.2026",
+  gloria: "10.08.2026",
+  rui: "10.08.2026",
+  "antonio-simoes": "10.08.2026",
+  jorge: "12.08.2026",
+};
+
+function getRsvpDeadline(guestSlug) {
+  return guestSlug ? specialRsvpDeadlines[guestSlug] : null;
+}
 
 const VOCE_TREATMENT_SLUGS = new Set(["antonio-simoes"]);
 
@@ -705,9 +711,8 @@ export default function WeddingWebsiteV3() {
   const { guestSlug } = useParams();
   const guest = guestSlug ? guests[guestSlug] : null;
   const copy = getGuestCopy(guest, guestSlug);
-  const hasSpecialRsvpDeadline = guestSlug
-    ? specialRsvpDeadlineSlugs.has(guestSlug)
-    : false;
+  const rsvpDeadline = getRsvpDeadline(guestSlug);
+  const hasSpecialRsvpDeadline = Boolean(rsvpDeadline);
 
   const storageKey = `rsvp-form-${guestSlug || "default"}`;
   const conviteQuery = guestInvitationQuery(guestSlug);
@@ -1185,7 +1190,8 @@ export default function WeddingWebsiteV3() {
                 {hasSpecialRsvpDeadline && (
                   <>
                     {" "}
-                    Confirmar até <span className="font-black">10.08.2026</span>
+                    Confirmar até{" "}
+                    <span className="font-black">{rsvpDeadline}</span>
                     .
                   </>
                 )}
