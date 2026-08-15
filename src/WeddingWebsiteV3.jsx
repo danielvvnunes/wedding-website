@@ -402,7 +402,7 @@ const guestList = [
   [["Hugo"], "Querido Amigo", "singular"],
   [["Daniela"], "Querida Amiga", "singular"],
   [["Flutter"], "Querida Amiga", "singular"],
-  [["Ruiva"], "Amiga", "singular", "amiga-ruiva"],
+  [["Ruiva"], "Amiga", "singular", "ruiva"],
   [["Catarina Laginhas", "Família"], "Querida Amiga", "plural"],
   [["João Fernandes"], "Querido Amigo", "singular"],
   [["Bruno", "Marta"], "Queridos Amigos", "plural", "bruno-marta"],
@@ -1193,8 +1193,7 @@ export default function WeddingWebsiteV3() {
                   <>
                     {" "}
                     Confirmar até{" "}
-                    <span className="font-black">{rsvpDeadline}</span>
-                    .
+                    <span className="font-black">{rsvpDeadline}</span>.
                   </>
                 )}
               </p>
