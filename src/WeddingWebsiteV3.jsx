@@ -402,6 +402,7 @@ const guestList = [
   [["Hugo"], "Querido Amigo", "singular"],
   [["Daniela"], "Querida Amiga", "singular"],
   [["Flutter"], "Querida Amiga", "singular"],
+  [["Amiga Ruiva"], "Querida", "singular", "amiga-ruiva"],
   [["Catarina Laginhas", "Família"], "Querida Amiga", "plural"],
   [["João Fernandes"], "Querido Amigo", "singular"],
   [["Bruno", "Marta"], "Queridos Amigos", "plural", "bruno-marta"],

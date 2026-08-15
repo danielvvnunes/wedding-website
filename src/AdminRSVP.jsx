@@ -272,6 +272,23 @@ function formatSideLabel(side) {
   }
 }
 
+const TEST_TABLE_EMAIL_RECIPIENTS = [
+  {
+    email: "franciscab97@gmail.com",
+    firstName: "Francisca",
+    table: "25",
+    tableName: "Paris",
+  },
+  {
+    email: "danielvvnunes@gmail.com",
+    firstName: "Daniel",
+    table: "25",
+    tableName: "Paris",
+  },
+];
+const TEST_TABLE_EMAIL_SCHEDULED_AT = "2026-08-15T11:50:00.000Z";
+const TABLE_EMAIL_PREVIEW_LIMIT = 6;
+
 export default function AdminRSVP() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -283,6 +300,9 @@ export default function AdminRSVP() {
   const [pendingDeletePerson, setPendingDeletePerson] = useState(null);
   const [deleteError, setDeleteError] = useState("");
   const [updateError, setUpdateError] = useState("");
+  const [tableEmailAction, setTableEmailAction] = useState("");
+  const [tableEmailError, setTableEmailError] = useState("");
+  const [tableEmailResult, setTableEmailResult] = useState("");
 
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
@@ -345,6 +365,12 @@ export default function AdminRSVP() {
   ];
 
   const COLORS = ["#b7c4b0", "#d9a6a6"];
+  const tableEmailPreview = TEST_TABLE_EMAIL_RECIPIENTS.slice(
+    0,
+    TABLE_EMAIL_PREVIEW_LIMIT,
+  );
+  const tableEmailHiddenCount =
+    TEST_TABLE_EMAIL_RECIPIENTS.length - tableEmailPreview.length;
 
   const filteredResponses = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-PT");
@@ -561,6 +587,54 @@ export default function AdminRSVP() {
     }
   }
 
+  async function sendTableEmails({ scheduledAt = "" } = {}) {
+    setTableEmailError("");
+    setTableEmailResult("");
+
+    const actionLabel = scheduledAt ? "agendar" : "enviar agora";
+    const confirmMessage = scheduledAt
+      ? `Confirmas que queres agendar ${TEST_TABLE_EMAIL_RECIPIENTS.length} email(s) para hoje às 12:50?`
+      : `Confirmas que queres enviar agora ${TEST_TABLE_EMAIL_RECIPIENTS.length} email(s)?`;
+    const confirmed = window.confirm(
+      `${confirmMessage}\n\nEsta ação vai chamar o Resend.`,
+    );
+
+    if (!confirmed) return;
+
+    setTableEmailAction(actionLabel);
+
+    try {
+      const response = await fetch("/api/send-table-emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-password": password || ADMIN_PASSWORD,
+        },
+        body: JSON.stringify({
+          recipients: TEST_TABLE_EMAIL_RECIPIENTS,
+          ...(scheduledAt ? { scheduledAt } : {}),
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Não foi possível enviar os emails.");
+      }
+
+      setTableEmailResult(
+        data.scheduledAt
+          ? `${data.sent} email(s) agendados para hoje às 12:50.`
+          : `${data.sent} email(s) enviados em ${data.batches} lote(s).`,
+      );
+    } catch (error) {
+      console.error(error);
+      setTableEmailError(error.message || "Não foi possível enviar os emails.");
+    } finally {
+      setTableEmailAction("");
+    }
+  }
+
   if (!isAuthenticated) {
     return (
       <main className="admin-bg flex min-h-screen items-center justify-center px-5 text-[#7f8f78]">
@@ -661,125 +735,228 @@ export default function AdminRSVP() {
             </p>
           )}
 
-        <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
-              Presenças
-            </h2>
+          <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
+                  Emails das mesas
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[#8f9f8a]">
+                  Agenda com margem para absorver atrasos, ou envia agora em
+                  batch para submeter todos de uma vez.
+                </p>
+              </div>
 
-            <p className="text-sm text-[#8f9f8a]">
-              Total respostas: {responses.length}
-            </p>
-          </div>
-
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={attendanceData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={70}
-                  outerRadius={110}
-                  paddingAngle={5}
-                  label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() =>
+                    sendTableEmails({
+                      scheduledAt: TEST_TABLE_EMAIL_SCHEDULED_AT,
+                    })
+                  }
+                  disabled={!!tableEmailAction}
+                  className="cursor-pointer rounded-full border border-[#cdb892] bg-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white shadow-[0_8px_28px_rgba(205,184,146,0.28)] transition hover:-translate-y-[1px] hover:bg-[#b7975b] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {attendanceData.map((entry, index) => (
-                    <Cell key={entry.name} fill={COLORS[index]} />
+                  {tableEmailAction === "agendar"
+                    ? "A agendar..."
+                    : "Agendar 12:50"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => sendTableEmails()}
+                  disabled={!!tableEmailAction}
+                  className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/45 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-[#cdb892] shadow-sm backdrop-blur transition hover:-translate-y-[1px] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {tableEmailAction === "enviar agora"
+                    ? "A enviar..."
+                    : "Enviar agora"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-[1.3rem] border border-[#b7c4b0]/25 bg-[#fbfaf5]/50 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#cdb892]">
+                    Lista preparada
+                  </p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#b7c4b0]">
+                    {TEST_TABLE_EMAIL_RECIPIENTS.length} emails
+                  </p>
+                </div>
+
+                <p className="text-sm text-[#8f9f8a]">
+                  Preview dos primeiros {tableEmailPreview.length}
+                  {tableEmailHiddenCount > 0
+                    ? ` · +${tableEmailHiddenCount} restantes`
+                    : ""}
+                </p>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-[1rem] border border-[#b7c4b0]/20">
+                <div className="grid grid-cols-[1fr_auto] bg-white/45 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#cdb892] sm:grid-cols-[1fr_1fr_auto]">
+                  <span>Nome</span>
+                  <span className="hidden sm:block">Email</span>
+                  <span>Mesa</span>
+                </div>
+
+                <div className="max-h-64 overflow-auto">
+                  {tableEmailPreview.map((recipient) => (
+                    <div
+                      key={recipient.email}
+                      className="grid grid-cols-[1fr_auto] gap-3 border-t border-[#b7c4b0]/15 px-4 py-3 text-sm sm:grid-cols-[1fr_1fr_auto]"
+                    >
+                      <span className="font-bold text-[#7f8f78]">
+                        {recipient.firstName}
+                      </span>
+                      <span className="hidden truncate text-[#8f9f8a] sm:block">
+                        {recipient.email}
+                      </span>
+                      <span className="font-bold text-[#cdb892]">
+                        {recipient.table} · {recipient.tableName}
+                      </span>
+                    </div>
                   ))}
-                </Pie>
+                </div>
+              </div>
+            </div>
 
-                <Tooltip formatter={(value, name) => [`${value}`, name]} />
-
-                <Legend
-                  verticalAlign="bottom"
-                  iconType="circle"
-                  formatter={(value) => (
-                    <span className="text-[#7f8f78]">{value}</span>
-                  )}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="mt-4 grid gap-4 text-center md:grid-cols-5">
-            <MiniStat label="Brutos" value={stats.confirmed} />
-            <MiniStat
-              label="Ponderados"
-              value={formatWeighted(stats.weighted)}
-            />
-            <MiniStat label="Adultos" value={stats.adults} />
-            <MiniStat label="Crianças ≤3" value={stats.childrenUnder3} />
-            <MiniStat label="Crianças ≤9" value={stats.childrenUnder9} />
-          </div>
-        </section>
-
-        <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div className="space-y-3">
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Pesquisar por nome"
-              className="admin-field"
-            />
-
-            <SideFilter value={sideFilter} onChange={setSideFilter} />
-
-            {(searchTerm.trim() || sideFilter !== "all") && (
-              <p className="text-sm text-[#8f9f8a]">
-                {filteredResponses.length} de {responses.length} respostas
+            {tableEmailError && (
+              <p className="mt-4 rounded-[1.3rem] border border-[#d9a6a6]/45 bg-[#d9a6a6]/15 px-4 py-3 text-sm leading-6 text-[#b76f6f]">
+                {tableEmailError}
               </p>
             )}
-          </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-            <button
-              onClick={fetchResponses}
-              className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/45 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-[#cdb892] shadow-sm backdrop-blur transition hover:-translate-y-[1px] hover:bg-white"
-            >
-              Atualizar
-            </button>
+            {tableEmailResult && (
+              <p className="mt-4 rounded-[1.3rem] border border-[#b7c4b0]/45 bg-[#b7c4b0]/15 px-4 py-3 text-sm leading-6 text-[#7f8f78]">
+                {tableEmailResult}
+              </p>
+            )}
+          </section>
 
-            <button
-              onClick={exportCSV}
-              className="cursor-pointer rounded-full border border-[#cdb892] bg-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white shadow-[0_8px_28px_rgba(205,184,146,0.28)] transition hover:-translate-y-[1px] hover:bg-[#b7975b]"
-            >
-              Exportar CSV
-            </button>
-          </div>
-        </div>
+          <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
+                Presenças
+              </h2>
 
-        {loading ? (
-          <p className="text-center text-[#8f9f8a]">A carregar respostas...</p>
-        ) : filteredResponses.length === 0 ? (
-          <p className="text-center text-[#8f9f8a]">
-            Nenhuma resposta encontrada.
-          </p>
-        ) : (
-          <div className="grid gap-4">
-            {filteredResponses.map((response) => (
-              <RSVPCard
-                key={response.id}
-                response={response}
-                onDelete={() => {
-                  setDeleteError("");
-                  setPendingDeleteResponse(response);
-                }}
-                onRemovePerson={(personIndex) => {
-                  setDeleteError("");
-                  setPendingDeletePerson({ response, personIndex });
-                }}
-                onSideChange={(side) => updateResponseSide(response.id, side)}
-                onAgeGroupChange={(personIndex, ageGroup) =>
-                  updatePersonAgeGroup(response.id, personIndex, ageGroup)
-                }
-                isDeleting={deletingIds.includes(response.id)}
-                isUpdating={updatingIds.includes(response.id)}
+              <p className="text-sm text-[#8f9f8a]">
+                Total respostas: {responses.length}
+              </p>
+            </div>
+
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={attendanceData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={70}
+                    outerRadius={110}
+                    paddingAngle={5}
+                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                  >
+                    {attendanceData.map((entry, index) => (
+                      <Cell key={entry.name} fill={COLORS[index]} />
+                    ))}
+                  </Pie>
+
+                  <Tooltip formatter={(value, name) => [`${value}`, name]} />
+
+                  <Legend
+                    verticalAlign="bottom"
+                    iconType="circle"
+                    formatter={(value) => (
+                      <span className="text-[#7f8f78]">{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-4 grid gap-4 text-center md:grid-cols-5">
+              <MiniStat label="Brutos" value={stats.confirmed} />
+              <MiniStat
+                label="Ponderados"
+                value={formatWeighted(stats.weighted)}
               />
-            ))}
+              <MiniStat label="Adultos" value={stats.adults} />
+              <MiniStat label="Crianças ≤3" value={stats.childrenUnder3} />
+              <MiniStat label="Crianças ≤9" value={stats.childrenUnder9} />
+            </div>
+          </section>
+
+          <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="space-y-3">
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Pesquisar por nome"
+                className="admin-field"
+              />
+
+              <SideFilter value={sideFilter} onChange={setSideFilter} />
+
+              {(searchTerm.trim() || sideFilter !== "all") && (
+                <p className="text-sm text-[#8f9f8a]">
+                  {filteredResponses.length} de {responses.length} respostas
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                onClick={fetchResponses}
+                className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/45 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-[#cdb892] shadow-sm backdrop-blur transition hover:-translate-y-[1px] hover:bg-white"
+              >
+                Atualizar
+              </button>
+
+              <button
+                onClick={exportCSV}
+                className="cursor-pointer rounded-full border border-[#cdb892] bg-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white shadow-[0_8px_28px_rgba(205,184,146,0.28)] transition hover:-translate-y-[1px] hover:bg-[#b7975b]"
+              >
+                Exportar CSV
+              </button>
+            </div>
           </div>
-        )}
+
+          {loading ? (
+            <p className="text-center text-[#8f9f8a]">
+              A carregar respostas...
+            </p>
+          ) : filteredResponses.length === 0 ? (
+            <p className="text-center text-[#8f9f8a]">
+              Nenhuma resposta encontrada.
+            </p>
+          ) : (
+            <div className="grid gap-4">
+              {filteredResponses.map((response) => (
+                <RSVPCard
+                  key={response.id}
+                  response={response}
+                  onDelete={() => {
+                    setDeleteError("");
+                    setPendingDeleteResponse(response);
+                  }}
+                  onRemovePerson={(personIndex) => {
+                    setDeleteError("");
+                    setPendingDeletePerson({ response, personIndex });
+                  }}
+                  onSideChange={(side) => updateResponseSide(response.id, side)}
+                  onAgeGroupChange={(personIndex, ageGroup) =>
+                    updatePersonAgeGroup(response.id, personIndex, ageGroup)
+                  }
+                  isDeleting={deletingIds.includes(response.id)}
+                  isUpdating={updatingIds.includes(response.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </main>
 
@@ -972,11 +1149,15 @@ function RSVPCard({
                     className="admin-field py-3 text-sm"
                   >
                     <option value="adult">Adulto (1)</option>
-                    <option value="child_under_9">Criança 3-9 anos (0,5)</option>
+                    <option value="child_under_9">
+                      Criança 3-9 anos (0,5)
+                    </option>
                     <option value="child_under_3">Bebé 0-2 anos (0)</option>
                   </select>
                 ) : (
-                  <p className="text-[#8f9f8a]">{formatAgeGroup(person.ageGroup)}</p>
+                  <p className="text-[#8f9f8a]">
+                    {formatAgeGroup(person.ageGroup)}
+                  </p>
                 )}
               </div>
               <Info

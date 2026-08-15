@@ -1,0 +1,20 @@
+Assunto: A tua mesa
+
+Olá {{primeiro_nome}},
+
+Esperamos que estejas a aproveitar o cocktail.
+
+Daqui a pouco vamos entrar para a sala e, para ser mais fácil encontrares o teu lugar, aqui fica a tua mesa:
+
+Mesa: {{mesa}}
+{{nome_mesa}}
+
+Quando for anunciado o momento de entrada, a equipa da Quinta do Coração também estará por perto para te orientar.
+Até lá, continua a brindar e a aproveitar connosco.
+
+Obrigado por estares aqui e por fazeres parte deste dia tão especial.
+
+Com carinho,
+Francisca & Daniel
+
+Contacto: casamento.franciscadaniel@gmail.com
