@@ -24,7 +24,7 @@ Sugestão de preheader:
 Configura estas variáveis no ambiente de produção:
 
 - `RESEND_API_KEY`: API key do Resend.
-- `RESEND_FROM_EMAIL`: remetente verificado no Resend, por exemplo `Francisca & Daniel <mesas@oseudominio.pt>`.
+- `RESEND_FROM_EMAIL`: remetente verificado no Resend, por exemplo `Francisca & Daniel <convite@franciscaedaniel.pt>`.
 - `RESEND_REPLY_TO`: opcional; por defeito usa `casamento.franciscadaniel@gmail.com`.
 - `VITE_ADMIN_PASSWORD`: a mesma password do painel admin. Em alternativa, podes usar `TABLE_EMAIL_ADMIN_PASSWORD` ou `ADMIN_PASSWORD` só para o endpoint.
 

@@ -619,7 +619,11 @@ export default function AdminRSVP() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.error || "Não foi possível enviar os emails.");
+        throw new Error(
+          data.error ||
+            data.details?.message ||
+            `Não foi possível enviar os emails. Código ${response.status}.`,
+        );
       }
 
       setTableEmailResult(
