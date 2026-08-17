@@ -82,7 +82,6 @@ const styles = `
 const STORY_PHOTO_DURATION = 5000;
 const STORY_VIDEO_DURATION = 8000;
 const VISITOR_ID_STORAGE_KEY = "fd-gallery-visitor-id";
-const COUPLE_APP_MESSAGE = "Hoje queremos ver o dia pelos vossos olhos.";
 
 function getOrCreateVisitorId() {
   const storedVisitorId = localStorage.getItem(VISITOR_ID_STORAGE_KEY);
@@ -113,6 +112,7 @@ export default function GalleryAppPage() {
   const [likedByVisitor, setLikedByVisitor] = useState({});
   const [pendingLikes, setPendingLikes] = useState({});
   const [likeErrors, setLikeErrors] = useState({});
+  const [shareErrors, setShareErrors] = useState({});
   const [commentsByItem, setCommentsByItem] = useState({});
   const [commentDrafts, setCommentDrafts] = useState({});
   const [commentNameDrafts, setCommentNameDrafts] = useState({});
@@ -123,6 +123,7 @@ export default function GalleryAppPage() {
   const [storyProgress, setStoryProgress] = useState(0);
   const [sortOrder, setSortOrder] = useState("recent");
   const [isDragging, setIsDragging] = useState(false);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
 
   useEffect(() => {
     const convite = searchParams.get("convite");
@@ -236,6 +237,7 @@ export default function GalleryAppPage() {
     previewUrls.forEach((url) => URL.revokeObjectURL(url));
     const previews = selectedFiles.map((file) => URL.createObjectURL(file));
     setPreviewUrls(previews);
+    if (selectedFiles.length) setIsComposerOpen(true);
   }
 
   function handleFiles(event) {
@@ -344,6 +346,7 @@ export default function GalleryAppPage() {
       setName("");
       setCaption("");
       setStatus("success");
+      setIsComposerOpen(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (storyCameraInputRef.current) storyCameraInputRef.current.value = "";
     } catch (error) {
@@ -367,14 +370,6 @@ export default function GalleryAppPage() {
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )
       .slice(0, 12);
-  }, [uploadedItems]);
-
-  const guestCount = useMemo(() => {
-    const guestNames = uploadedItems
-      .map((item) => item.uploadedBy?.trim().toLowerCase())
-      .filter(Boolean);
-
-    return new Set(guestNames).size;
   }, [uploadedItems]);
 
   const activeStory =
@@ -687,6 +682,63 @@ export default function GalleryAppPage() {
     document.body.removeChild(link);
   }
 
+  async function shareMedia(item, index) {
+    const itemId = item.galleryId;
+    const title = "Memória do casamento da Francisca e do Daniel";
+    const text = item.caption || `${item.uploadedBy || "Um convidado"} partilhou uma memória.`;
+
+    setShareErrors((current) => ({ ...current, [itemId]: "" }));
+
+    try {
+      if (navigator.share) {
+        if (!item.type?.startsWith("video/")) {
+          try {
+            const response = await fetch(item.url);
+            const blob = await response.blob();
+            const extension =
+              item.filePath?.split(".").pop() ||
+              item.url.split(".").pop()?.split("?")[0] ||
+              "jpg";
+            const file = new File(
+              [blob],
+              `memoria-francisca-daniel-${index + 1}.${extension}`,
+              { type: blob.type || item.type || "image/jpeg" },
+            );
+
+            if (navigator.canShare?.({ files: [file] })) {
+              await navigator.share({ title, text, files: [file] });
+              return;
+            }
+          } catch (error) {
+            console.error(error);
+          }
+        }
+
+        await navigator.share({ title, text, url: item.url });
+        return;
+      }
+
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(item.url);
+        setShareErrors((current) => ({
+          ...current,
+          [itemId]: "Link copiado para partilhar.",
+        }));
+        return;
+      }
+
+      window.open(item.url, "_blank", "noreferrer");
+    } catch (error) {
+      if (error.name === "AbortError") return;
+
+      console.error(error);
+      setShareErrors((current) => ({
+        ...current,
+        [itemId]: "Não foi possível abrir a partilha.",
+      }));
+    }
+  }
+
   return (
     <main className="page-bg min-h-screen overflow-x-hidden text-[#64715f]">
       <style>{styles}</style>
@@ -702,10 +754,22 @@ export default function GalleryAppPage() {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <Link
-              to={invitationPath}
-              className="rounded-full border border-[#cdb892]/80 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b7975b]"
+	          <div className="flex shrink-0 items-center gap-2">
+	            <button
+	              type="button"
+	              onClick={() => {
+	                setStatus(null);
+	                setIsComposerOpen(true);
+	              }}
+	              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#cdb892]/80 bg-white/55 px-3 text-xs font-extrabold text-[#b7975b]"
+	              aria-label="Criar novo post"
+	            >
+	              <span className="text-lg leading-none">+</span>
+	              <span>Novo post</span>
+	            </button>
+	            <Link
+	              to={invitationPath}
+	              className="rounded-full border border-[#cdb892]/80 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b7975b]"
             >
               Convite
             </Link>
@@ -713,22 +777,8 @@ export default function GalleryAppPage() {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-3xl px-0 pb-14 pt-4 sm:px-5 md:pt-8">
+      <div className="mx-auto w-full max-w-3xl px-0 pb-14 pt-0 sm:px-5 md:pt-0">
         <div className="min-w-0 space-y-4">
-          <section className="app-card border-y border-[#ddd4c0]/70 bg-white/72 px-4 py-4 sm:rounded-[1.2rem] sm:border">
-            <p className="text-base font-extrabold leading-6 text-[#64715f]">
-              {COUPLE_APP_MESSAGE}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-[#8f9f8a]">
-              {uploadedItems.length}{" "}
-              {uploadedItems.length === 1
-                ? "memória partilhada"
-                : "memórias partilhadas"}{" "}
-              por {guestCount || 0}{" "}
-              {guestCount === 1 ? "convidado" : "convidados"}.
-            </p>
-          </section>
-
           <section className="app-card border-y border-[#ddd4c0]/70 bg-white/70 py-4 sm:rounded-[1.2rem] sm:border sm:mx-0">
             <div className="no-scrollbar flex max-w-full gap-4 overflow-x-auto px-4">
               <button
@@ -755,12 +805,13 @@ export default function GalleryAppPage() {
                   <span className="mx-auto block h-16 w-16 rounded-full bg-gradient-to-tr from-[#b7c4b0] via-[#f4e3bd] to-[#cdb892] p-[2px]">
                     <span className="block h-full w-full overflow-hidden rounded-full border-2 border-[#fbfaf5] bg-[#f8f5ee]">
                       {item.type?.startsWith("video/") ? (
-                        <video
-                          src={item.url}
-                          className="h-full w-full object-cover"
-                          muted
-                          playsInline
-                        />
+	                        <video
+	                          src={item.url}
+	                          className="h-full w-full object-cover"
+	                          preload="metadata"
+	                          muted
+	                          playsInline
+	                        />
                       ) : (
                         <img
                           src={item.url}
@@ -791,89 +842,72 @@ export default function GalleryAppPage() {
             className="hidden"
           />
 
-          <form
-            onSubmit={uploadPhotos}
-            className="app-card border-y border-[#ddd4c0]/70 bg-white/75 p-4 sm:rounded-[1.2rem] sm:border"
-          >
-            <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#b7c4b0] text-sm font-extrabold text-white">
-                F·D
-              </div>
-
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="O vosso nome"
-                className="min-w-0 flex-1 rounded-full border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-sm text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15"
-              />
-
-            </div>
-
-            <textarea
-              value={caption}
-              onChange={(event) => setCaption(event.target.value.slice(0, 120))}
-              rows={2}
-              placeholder="Legenda opcional..."
-              className="mt-4 w-full resize-none rounded-[1rem] border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-base text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15 sm:text-sm"
-            />
-            <p className="mt-1 text-right text-[11px] font-semibold text-[#9aa792]">
-              {caption.length}/120
-            </p>
-
-            <label
-              className={`mt-4 flex cursor-pointer flex-col items-center justify-center rounded-[1rem] border border-dashed px-4 py-8 text-center transition ${
-                isDragging
-                  ? "border-[#cdb892] bg-[#f8f5ee] ring-4 ring-[#cdb892]/15"
-                  : "border-[#d1c5ac] bg-[#fbfaf5]/70"
-              }`}
-              onDragOver={(event) => {
-                event.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-            >
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-[#cdb892]/15 text-2xl text-[#b7975b]">
-                +
-              </span>
-              <span className="mt-3 text-sm font-bold text-[#b7975b]">
-                Criar post com fotos ou vídeos
-              </span>
-              <span className="mt-1 text-xs leading-5 text-[#8f9f8a]">
-                Toquem aqui para escolher ficheiros.
-              </span>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                onChange={handleFiles}
-                className="hidden"
-              />
-            </label>
-
-            {!!previewUrls.length && (
-              <div className="mt-6">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-xs font-bold text-[#8f9f8a]">
-                    Preview do post
-                  </p>
-                  <p className="text-xs font-semibold text-[#cdb892]">
-                    {files.length} {files.length === 1 ? "ficheiro" : "ficheiros"}
+	          {isComposerOpen && (
+	            <div
+	              className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-0 backdrop-blur-sm sm:items-center sm:px-4"
+	              onClick={() => setIsComposerOpen(false)}
+	            >
+	          <form
+	            onSubmit={uploadPhotos}
+	            className="app-card flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[1.6rem] border-y border-[#ddd4c0]/70 bg-white sm:rounded-[1.2rem] sm:border"
+	            onClick={(event) => event.stopPropagation()}
+	          >
+	            <div className="flex items-center justify-between gap-3 border-b border-[#ddd4c0]/70 px-4 py-3">
+	              <div className="flex min-w-0 items-center gap-3">
+	                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-tr from-[#b7c4b0] to-[#cdb892] text-sm font-extrabold text-white">
+                  F·D
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-extrabold text-[#64715f]">Novo post</p>
+                  <p className="text-xs font-semibold text-[#9aa792]">
+                    {files.length
+                      ? `${files.length} ${files.length === 1 ? "ficheiro" : "ficheiros"}`
+                      : "Foto ou vídeo"}
                   </p>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-3 gap-2">
+	              <div className="flex shrink-0 items-center gap-3">
+	                <button
+	                  type="button"
+	                  onClick={() => setIsComposerOpen(false)}
+	                  className="grid h-8 w-8 place-items-center rounded-full bg-[#f8f5ee] text-xl leading-none text-[#64715f]"
+	                  aria-label="Fechar novo post"
+	                >
+	                  ×
+	                </button>
+	                <button
+	                  type="submit"
+	                  disabled={isUploading}
+	                  className="text-sm font-extrabold text-[#b7975b] disabled:opacity-50"
+	                >
+	                  {isUploading ? "A publicar..." : "Publicar"}
+	                </button>
+	              </div>
+	            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleFiles}
+              className="hidden"
+            />
+
+	            <div className="min-h-0 space-y-4 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              {previewUrls.length ? (
+                <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
                   {previewUrls.map((url, index) => (
                     <div
                       key={url}
-                      className="relative aspect-square overflow-hidden rounded-[0.8rem] border border-[#d8d0bd]/70 bg-[#f8f5ee]"
+                      className="relative h-44 w-32 shrink-0 overflow-hidden rounded-[0.9rem] border border-[#d8d0bd]/70 bg-[#f8f5ee]"
                     >
                       {files[index]?.type?.startsWith("video/") ? (
                         <video
                           src={url}
                           className="h-full w-full object-cover"
+                          preload="metadata"
                           muted
                           playsInline
                         />
@@ -888,40 +922,93 @@ export default function GalleryAppPage() {
                       <button
                         type="button"
                         onClick={() => removePreview(index)}
-                        className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-[#fbfaf5]/95 text-sm font-bold text-[#64715f]"
+                        className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-[#fbfaf5]/95 text-sm font-bold text-[#64715f] shadow-sm"
                         aria-label="Remover ficheiro"
                       >
                         ×
                       </button>
                     </div>
                   ))}
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="grid h-44 w-24 shrink-0 place-items-center rounded-[0.9rem] border border-dashed border-[#cdb892]/80 bg-[#f8f5ee]/80 text-2xl font-semibold text-[#b7975b]"
+                    aria-label="Adicionar mais ficheiros"
+                  >
+                    +
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`flex aspect-[4/3] w-full flex-col items-center justify-center rounded-[1rem] border border-dashed text-center transition ${
+                    isDragging
+                      ? "border-[#cdb892] bg-[#f8f5ee] ring-4 ring-[#cdb892]/15"
+                      : "border-[#d1c5ac] bg-[#fbfaf5]/70"
+                  }`}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
+                >
+                  <span className="grid h-14 w-14 place-items-center rounded-full bg-[#cdb892]/15 text-3xl text-[#b7975b]">
+                    +
+                  </span>
+                  <span className="mt-3 text-sm font-extrabold text-[#b7975b]">
+                    Adicionar fotos ou vídeos
+                  </span>
+                </button>
+              )}
+
+              <div className="flex items-start gap-3 border-t border-[#eee6d6] pt-4">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#b7c4b0] text-xs font-extrabold text-white">
+                  {(name.trim() || "C").slice(0, 1).toUpperCase()}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="O vosso nome"
+                    className="w-full border-0 bg-transparent py-1 text-base font-extrabold text-[#64715f] outline-none placeholder:font-semibold placeholder:text-[#9aa792] sm:text-sm"
+                  />
+
+                  <textarea
+                    value={caption}
+                    onChange={(event) =>
+                      setCaption(event.target.value.slice(0, 120))
+                    }
+                    rows={2}
+                    placeholder="Escrever legenda..."
+                    className="mt-1 w-full resize-none border-0 bg-transparent py-1 text-base leading-6 text-[#64715f] outline-none placeholder:text-[#9aa792] sm:text-sm"
+                  />
+
+                  <p className="text-right text-[11px] font-semibold text-[#9aa792]">
+                    {caption.length}/120
+                  </p>
                 </div>
               </div>
-            )}
 
-            {status && (
-              <p className="mt-8 text-center text-sm font-semibold text-[#8f9f8a]">
-                {status === "success" &&
-                  "Obrigada! As fotografias foram enviadas com sucesso."}
-                {status === "missing-name" &&
-                  "Indica o teu nome antes de enviar."}
-                {status === "missing-files" &&
-                  "Escolhe pelo menos uma fotografia ou vídeo."}
-                {status === "error" &&
-                  "Não foi possível enviar. Tenta novamente."}
-              </p>
-            )}
-
-            <div className="mt-5 flex justify-end">
-              <button
-                type="submit"
-                disabled={isUploading}
-                className="cursor-pointer rounded-full bg-[#cdb892] px-5 py-3 text-xs font-bold uppercase tracking-[0.08em] text-white transition hover:-translate-y-[1px] hover:shadow-[0_8px_30px_rgba(205,184,146,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isUploading ? "A publicar..." : "Publicar"}
-              </button>
-            </div>
-          </form>
+              {status && (
+                <p className="text-center text-sm font-semibold text-[#8f9f8a]">
+                  {status === "success" &&
+                    "Obrigada! As fotografias foram enviadas com sucesso."}
+                  {status === "missing-name" &&
+                    "Indica o teu nome antes de enviar."}
+                  {status === "missing-files" &&
+                    "Escolhe pelo menos uma fotografia ou vídeo."}
+                  {status === "error" &&
+                    "Não foi possível enviar. Tenta novamente."}
+                </p>
+              )}
+	            </div>
+	          </form>
+	            </div>
+	          )}
 
           <section className="space-y-4">
             <div className="flex items-center justify-between px-4 sm:px-0">
@@ -994,12 +1081,13 @@ export default function GalleryAppPage() {
                       className="block w-full cursor-zoom-in bg-[#f8f5ee]"
                     >
                       {item.type?.startsWith("video/") ? (
-                        <video
-                          src={item.url}
-                          className="max-h-[70vh] w-full object-contain"
-                          muted
-                          playsInline
-                        />
+	                        <video
+	                          src={item.url}
+	                          className="max-h-[70vh] w-full object-contain"
+	                          preload="metadata"
+	                          muted
+	                          playsInline
+	                        />
                       ) : (
                         <img
                           src={item.url}
@@ -1039,9 +1127,9 @@ export default function GalleryAppPage() {
                               <path d="M20.8 5.8a5.4 5.4 0 0 0-7.7 0L12 6.9l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 22l8.8-8.5a5.4 5.4 0 0 0 0-7.7Z" />
                             </svg>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => openComments(item)}
+	                          <button
+	                            type="button"
+	                            onClick={() => openComments(item)}
                             aria-label="Comentar"
                             className="grid h-8 w-8 place-items-center"
                           >
@@ -1055,22 +1143,42 @@ export default function GalleryAppPage() {
                               strokeLinejoin="round"
                               strokeWidth="1.9"
                             >
-                              <path d="M20.2 11.7a7.8 7.8 0 0 1-8.1 7.6 8.8 8.8 0 0 1-3.1-.6l-4.6 1.1 1.2-4.1a7.3 7.3 0 0 1-1.1-4 7.8 7.8 0 0 1 8.1-7.6 7.8 7.8 0 0 1 7.6 7.6Z" />
-                            </svg>
-                          </button>
-                        </div>
-
-                        {!item.type?.startsWith("video/") && (
-                          <button
-                            type="button"
-                            onClick={() => downloadImage(item.url, index)}
-                            className="grid h-9 w-9 place-items-center rounded-full border border-[#cdb892]/60 text-base text-[#b7975b]"
-                            aria-label="Download"
-                          >
-                            ↓
-                          </button>
-                        )}
-                      </div>
+	                              <path d="M20.2 11.7a7.8 7.8 0 0 1-8.1 7.6 8.8 8.8 0 0 1-3.1-.6l-4.6 1.1 1.2-4.1a7.3 7.3 0 0 1-1.1-4 7.8 7.8 0 0 1 8.1-7.6 7.8 7.8 0 0 1 7.6 7.6Z" />
+	                            </svg>
+	                          </button>
+	                          <button
+	                            type="button"
+	                            onClick={() => shareMedia(item, index)}
+	                            aria-label="Partilhar"
+	                            className="grid h-8 w-8 place-items-center"
+	                          >
+	                            <svg
+	                              viewBox="0 0 24 24"
+	                              aria-hidden="true"
+	                              className="h-7 w-7"
+	                              fill="none"
+	                              stroke="currentColor"
+	                              strokeLinecap="round"
+	                              strokeLinejoin="round"
+	                              strokeWidth="1.9"
+	                            >
+	                              <path d="m21 3-7.2 18-4.1-8.7L1 8.2 21 3Z" />
+	                              <path d="M21 3 9.7 12.3" />
+	                            </svg>
+	                          </button>
+	                        </div>
+	
+	                        {!item.type?.startsWith("video/") && (
+	                          <button
+	                            type="button"
+	                            onClick={() => downloadImage(item.url, index)}
+	                            className="grid h-9 w-9 place-items-center rounded-full border border-[#cdb892]/60 text-base text-[#b7975b]"
+	                            aria-label="Download"
+	                          >
+	                            ↓
+	                          </button>
+	                        )}
+	                      </div>
 
                       <p className="mt-3 text-sm font-extrabold text-[#64715f]">
                         {likesByItem[item.galleryId] || 0}{" "}
@@ -1079,11 +1187,17 @@ export default function GalleryAppPage() {
                           : "gostos"}
                       </p>
 
-                      {likeErrors[item.galleryId] && (
-                        <p className="mt-2 text-xs font-semibold text-[#c76d70]">
-                          {likeErrors[item.galleryId]}
-                        </p>
-                      )}
+	                      {likeErrors[item.galleryId] && (
+	                        <p className="mt-2 text-xs font-semibold text-[#c76d70]">
+	                          {likeErrors[item.galleryId]}
+	                        </p>
+	                      )}
+
+	                      {shareErrors[item.galleryId] && (
+	                        <p className="mt-2 text-xs font-semibold text-[#8f9f8a]">
+	                          {shareErrors[item.galleryId]}
+	                        </p>
+	                      )}
 
                       {deleteErrors[item.galleryId] && (
                         <p className="mt-2 text-xs font-semibold text-[#c76d70]">
