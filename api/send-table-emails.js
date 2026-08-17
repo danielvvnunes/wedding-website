@@ -31,6 +31,12 @@ function parseBody(body) {
   return body;
 }
 
+function cleanEnvValue(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^['"]|['"]$/g, "");
+}
+
 function normalizeRecipient(recipient, index) {
   const email = String(recipient.email || "").trim();
   const firstName = String(
@@ -224,8 +230,8 @@ export default async function handler(req, res) {
 
   const subject = String(body.subject || DEFAULT_SUBJECT).trim();
   const scheduledAt = body.scheduledAt ? String(body.scheduledAt).trim() : "";
-  const from = process.env.RESEND_FROM_EMAIL;
-  const replyTo = process.env.RESEND_REPLY_TO || DEFAULT_REPLY_TO;
+  const from = cleanEnvValue(process.env.RESEND_FROM_EMAIL);
+  const replyTo = cleanEnvValue(process.env.RESEND_REPLY_TO) || DEFAULT_REPLY_TO;
   const emailPayloads = recipients.map((recipient) => ({
     from,
     to: [recipient.email],

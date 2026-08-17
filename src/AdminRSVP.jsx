@@ -289,6 +289,181 @@ const TEST_TABLE_EMAIL_RECIPIENTS = [
 const TEST_TABLE_EMAIL_SCHEDULED_AT = "2026-08-15T11:50:00.000Z";
 const TABLE_EMAIL_PREVIEW_LIMIT = 6;
 
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+
+  for (let index = 0; index < 256; index += 1) {
+    let value = index;
+
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+    }
+
+    table[index] = value >>> 0;
+  }
+
+  return table;
+})();
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+
+  bytes.forEach((byte) => {
+    crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  });
+
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function writeUint16(bytes, value) {
+  bytes.push(value & 0xff, (value >>> 8) & 0xff);
+}
+
+function writeUint32(bytes, value) {
+  bytes.push(
+    value & 0xff,
+    (value >>> 8) & 0xff,
+    (value >>> 16) & 0xff,
+    (value >>> 24) & 0xff,
+  );
+}
+
+function getDosDateTime(dateValue) {
+  const date = dateValue ? new Date(dateValue) : new Date();
+  const year = Math.max(date.getFullYear(), 1980);
+  const dosTime =
+    (date.getHours() << 11) |
+    (date.getMinutes() << 5) |
+    Math.floor(date.getSeconds() / 2);
+  const dosDate =
+    ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+
+  return { dosDate, dosTime };
+}
+
+function sanitizeFilePart(value, fallback = "ficheiro") {
+  return (value || fallback)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80) || fallback;
+}
+
+function getGalleryFileName(item, index) {
+  const pathName = item.file_path?.split("/").pop() || "";
+  const extension = pathName.includes(".")
+    ? pathName.slice(pathName.lastIndexOf("."))
+    : item.file_type?.startsWith("video/")
+      ? ".mp4"
+      : ".jpg";
+  const person = sanitizeFilePart(item.uploaded_by, "convidado");
+  const date = item.created_at
+    ? new Date(item.created_at).toISOString().slice(0, 10)
+    : "sem-data";
+
+  return `${String(index + 1).padStart(3, "0")}-${date}-${person}${extension}`;
+}
+
+function createZip(files) {
+  const encoder = new TextEncoder();
+  const chunks = [];
+  const centralDirectory = [];
+  let offset = 0;
+
+  files.forEach((file) => {
+    const nameBytes = encoder.encode(file.name);
+    const checksum = crc32(file.bytes);
+    const { dosDate, dosTime } = getDosDateTime(file.createdAt);
+    const localHeader = [];
+
+    writeUint32(localHeader, 0x04034b50);
+    writeUint16(localHeader, 20);
+    writeUint16(localHeader, 0);
+    writeUint16(localHeader, 0);
+    writeUint16(localHeader, dosTime);
+    writeUint16(localHeader, dosDate);
+    writeUint32(localHeader, checksum);
+    writeUint32(localHeader, file.bytes.length);
+    writeUint32(localHeader, file.bytes.length);
+    writeUint16(localHeader, nameBytes.length);
+    writeUint16(localHeader, 0);
+
+    chunks.push(new Uint8Array(localHeader), nameBytes, file.bytes);
+
+    const centralHeader = [];
+    writeUint32(centralHeader, 0x02014b50);
+    writeUint16(centralHeader, 20);
+    writeUint16(centralHeader, 20);
+    writeUint16(centralHeader, 0);
+    writeUint16(centralHeader, 0);
+    writeUint16(centralHeader, dosTime);
+    writeUint16(centralHeader, dosDate);
+    writeUint32(centralHeader, checksum);
+    writeUint32(centralHeader, file.bytes.length);
+    writeUint32(centralHeader, file.bytes.length);
+    writeUint16(centralHeader, nameBytes.length);
+    writeUint16(centralHeader, 0);
+    writeUint16(centralHeader, 0);
+    writeUint16(centralHeader, 0);
+    writeUint16(centralHeader, 0);
+    writeUint32(centralHeader, 0);
+    writeUint32(centralHeader, offset);
+
+    centralDirectory.push(new Uint8Array(centralHeader), nameBytes);
+    offset += localHeader.length + nameBytes.length + file.bytes.length;
+  });
+
+  const centralDirectorySize = centralDirectory.reduce(
+    (total, chunk) => total + chunk.length,
+    0,
+  );
+  const endRecord = [];
+
+  writeUint32(endRecord, 0x06054b50);
+  writeUint16(endRecord, 0);
+  writeUint16(endRecord, 0);
+  writeUint16(endRecord, files.length);
+  writeUint16(endRecord, files.length);
+  writeUint32(endRecord, centralDirectorySize);
+  writeUint32(endRecord, offset);
+  writeUint16(endRecord, 0);
+
+  return new Blob([...chunks, ...centralDirectory, new Uint8Array(endRecord)], {
+    type: "application/zip",
+  });
+}
+
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function CollapseIcon({ isOpen }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={`h-5 w-5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function pluralize(count, singular, plural) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export default function AdminRSVP() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -303,6 +478,13 @@ export default function AdminRSVP() {
   const [tableEmailAction, setTableEmailAction] = useState("");
   const [tableEmailError, setTableEmailError] = useState("");
   const [tableEmailResult, setTableEmailResult] = useState("");
+  const [galleryItems, setGalleryItems] = useState([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryAction, setGalleryAction] = useState("");
+  const [galleryError, setGalleryError] = useState("");
+  const [galleryResult, setGalleryResult] = useState("");
+  const [isGalleryPanelOpen, setIsGalleryPanelOpen] = useState(false);
+  const [isTableEmailPanelOpen, setIsTableEmailPanelOpen] = useState(false);
 
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
@@ -329,15 +511,35 @@ export default function AdminRSVP() {
     setLoading(false);
   }, []);
 
+  const fetchGalleryItems = useCallback(async () => {
+    setGalleryLoading(true);
+    setGalleryError("");
+
+    const { data, error } = await supabase
+      .from("wedding_gallery")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setGalleryError("Erro ao carregar a galeria.");
+    } else {
+      setGalleryItems(data ?? []);
+    }
+
+    setGalleryLoading(false);
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const timer = window.setTimeout(() => {
       fetchResponses();
+      fetchGalleryItems();
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [isAuthenticated, fetchResponses]);
+  }, [isAuthenticated, fetchGalleryItems, fetchResponses]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -345,17 +547,20 @@ export default function AdminRSVP() {
     function syncVisiblePage() {
       if (document.visibilityState === "visible") {
         fetchResponses();
+        fetchGalleryItems();
       }
     }
 
     document.addEventListener("visibilitychange", syncVisiblePage);
     window.addEventListener("focus", fetchResponses);
+    window.addEventListener("focus", fetchGalleryItems);
 
     return () => {
       document.removeEventListener("visibilitychange", syncVisiblePage);
       window.removeEventListener("focus", fetchResponses);
+      window.removeEventListener("focus", fetchGalleryItems);
     };
-  }, [isAuthenticated, fetchResponses]);
+  }, [isAuthenticated, fetchGalleryItems, fetchResponses]);
 
   const stats = useMemo(() => computeAdminStats(responses), [responses]);
 
@@ -576,6 +781,64 @@ export default function AdminRSVP() {
     URL.revokeObjectURL(url);
   }
 
+  async function downloadGalleryZip() {
+    if (!galleryItems.length) return;
+
+    const confirmed = window.confirm(
+      `Queres descarregar ${pluralize(
+        galleryItems.length,
+        "ficheiro",
+        "ficheiros",
+      )} da galeria num ZIP?`,
+    );
+    if (!confirmed) return;
+
+    setGalleryAction("zip");
+    setGalleryError("");
+    setGalleryResult("");
+
+    try {
+      const files = [];
+
+      for (const [index, item] of galleryItems.entries()) {
+        setGalleryResult(
+          `A preparar ${index + 1} de ${galleryItems.length}: ${
+            item.uploaded_by || "Convidado"
+          }`,
+        );
+
+        const response = await fetch(item.file_url);
+
+        if (!response.ok) {
+          throw new Error(
+            `Não foi possível descarregar ${item.file_path || item.file_url}.`,
+          );
+        }
+
+        const bytes = new Uint8Array(await response.arrayBuffer());
+
+        files.push({
+          name: getGalleryFileName(item, index),
+          bytes,
+          createdAt: item.created_at,
+        });
+      }
+
+      const zip = createZip(files);
+      downloadBlob(zip, "galeria-francisca-daniel.zip");
+      setGalleryResult(
+        `${pluralize(files.length, "ficheiro", "ficheiros")} descarregados em ZIP.`,
+      );
+    } catch (error) {
+      console.error(error);
+      setGalleryError(
+        error.message || "Não foi possível descarregar a galeria.",
+      );
+    } finally {
+      setGalleryAction("");
+    }
+  }
+
   function handleLogin(e) {
     e.preventDefault();
 
@@ -740,103 +1003,230 @@ export default function AdminRSVP() {
           )}
 
           <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
-            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
+                  Galeria
+                </h2>
+                <p className="mt-2 text-sm font-bold text-[#8f9f8a]">
+                  {galleryLoading
+                    ? "A carregar..."
+                    : pluralize(galleryItems.length, "ficheiro", "ficheiros")}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[#8f9f8a]">
+                  Descarrega todas as fotos e vídeos publicados pelos
+                  convidados.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsGalleryPanelOpen((current) => !current)}
+                className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-[#cdb892]/60 bg-white/45 text-[#cdb892] shadow-sm backdrop-blur transition hover:bg-white"
+                aria-label={
+                  isGalleryPanelOpen
+                    ? "Colapsar secção galeria"
+                    : "Abrir secção galeria"
+                }
+              >
+                <CollapseIcon isOpen={isGalleryPanelOpen} />
+              </button>
+            </div>
+
+            {isGalleryPanelOpen && (
+              <div className="mt-5">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={fetchGalleryItems}
+                    disabled={galleryLoading || !!galleryAction}
+                    className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/45 px-6 py-3 text-xs font-bold uppercase tracking-[0.22em] text-[#cdb892] shadow-sm backdrop-blur transition hover:-translate-y-[1px] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Atualizar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={downloadGalleryZip}
+                    disabled={
+                      !galleryItems.length || galleryLoading || !!galleryAction
+                    }
+                    className="cursor-pointer rounded-full border border-[#cdb892] bg-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.22em] text-white shadow-[0_8px_28px_rgba(205,184,146,0.28)] transition hover:-translate-y-[1px] hover:bg-[#b7975b] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {galleryAction === "zip"
+                      ? "A preparar ZIP..."
+                      : "Download ZIP"}
+                  </button>
+                </div>
+
+                {galleryItems.length > 0 && (
+                  <div className="mt-5 overflow-hidden rounded-[1.2rem] border border-[#b7c4b0]/20">
+                    <div className="grid grid-cols-[1fr_auto] bg-white/45 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#cdb892] sm:grid-cols-[1fr_1fr_auto]">
+                      <span>Convidado</span>
+                      <span className="hidden sm:block">Ficheiro</span>
+                      <span>Data</span>
+                    </div>
+
+                    <div className="max-h-64 overflow-auto">
+                      {galleryItems.slice(0, 8).map((item) => (
+                        <div
+                          key={item.file_path || item.file_url}
+                          className="grid grid-cols-[1fr_auto] gap-3 border-t border-[#b7c4b0]/15 px-4 py-3 text-sm sm:grid-cols-[1fr_1fr_auto]"
+                        >
+                          <span className="truncate font-bold text-[#7f8f78]">
+                            {item.uploaded_by || "Convidado"}
+                          </span>
+                          <span className="hidden truncate text-[#8f9f8a] sm:block">
+                            {item.file_path}
+                          </span>
+                          <span className="whitespace-nowrap font-bold text-[#cdb892]">
+                            {formatAdminDate(item.created_at)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {galleryError && (
+                  <p className="mt-4 rounded-[1.3rem] border border-[#d9a6a6]/45 bg-[#d9a6a6]/15 px-4 py-3 text-sm leading-6 text-[#b76f6f]">
+                    {galleryError}
+                  </p>
+                )}
+
+                {galleryResult && (
+                  <p className="mt-4 rounded-[1.3rem] border border-[#b7c4b0]/45 bg-[#b7c4b0]/15 px-4 py-3 text-sm leading-6 text-[#7f8f78]">
+                    {galleryResult}
+                  </p>
+                )}
+              </div>
+            )}
+          </section>
+
+          <section className="mb-8 rounded-[2rem] border border-[#b7c4b0]/35 bg-white/38 p-6 shadow-[0_16px_50px_rgba(143,159,138,0.12)] backdrop-blur">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-[#b7c4b0]">
                   Emails das mesas
                 </h2>
+                <p className="mt-2 text-sm font-bold text-[#8f9f8a]">
+                  {pluralize(
+                    TEST_TABLE_EMAIL_RECIPIENTS.length,
+                    "email",
+                    "emails",
+                  )}
+                </p>
                 <p className="mt-2 text-sm leading-6 text-[#8f9f8a]">
                   Agenda com margem para absorver atrasos, ou envia agora em
                   batch para submeter todos de uma vez.
                 </p>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={() =>
-                    sendTableEmails({
-                      scheduledAt: TEST_TABLE_EMAIL_SCHEDULED_AT,
-                    })
-                  }
-                  disabled={!!tableEmailAction}
-                  className="cursor-pointer rounded-full border border-[#cdb892] bg-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white shadow-[0_8px_28px_rgba(205,184,146,0.28)] transition hover:-translate-y-[1px] hover:bg-[#b7975b] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {tableEmailAction === "agendar"
-                    ? "A agendar..."
-                    : "Agendar 12:50"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => sendTableEmails()}
-                  disabled={!!tableEmailAction}
-                  className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/45 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-[#cdb892] shadow-sm backdrop-blur transition hover:-translate-y-[1px] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {tableEmailAction === "enviar agora"
-                    ? "A enviar..."
-                    : "Enviar agora"}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setIsTableEmailPanelOpen((current) => !current)
+                }
+                className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-[#cdb892]/60 bg-white/45 text-[#cdb892] shadow-sm backdrop-blur transition hover:bg-white"
+                aria-label={
+                  isTableEmailPanelOpen
+                    ? "Colapsar secção emails"
+                    : "Abrir secção emails"
+                }
+              >
+                <CollapseIcon isOpen={isTableEmailPanelOpen} />
+              </button>
             </div>
 
-            <div className="rounded-[1.3rem] border border-[#b7c4b0]/25 bg-[#fbfaf5]/50 p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#cdb892]">
-                    Lista preparada
-                  </p>
-                  <p className="mt-2 text-2xl font-extrabold text-[#b7c4b0]">
-                    {TEST_TABLE_EMAIL_RECIPIENTS.length} emails
-                  </p>
+            {isTableEmailPanelOpen && (
+              <div className="mt-5">
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      sendTableEmails({
+                        scheduledAt: TEST_TABLE_EMAIL_SCHEDULED_AT,
+                      })
+                    }
+                    disabled={!!tableEmailAction}
+                    className="cursor-pointer rounded-full border border-[#cdb892] bg-[#cdb892] px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white shadow-[0_8px_28px_rgba(205,184,146,0.28)] transition hover:-translate-y-[1px] hover:bg-[#b7975b] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {tableEmailAction === "agendar"
+                      ? "A agendar..."
+                      : "Agendar 12:50"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => sendTableEmails()}
+                    disabled={!!tableEmailAction}
+                    className="cursor-pointer rounded-full border border-[#cdb892]/60 bg-white/45 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-[#cdb892] shadow-sm backdrop-blur transition hover:-translate-y-[1px] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {tableEmailAction === "enviar agora"
+                      ? "A enviar..."
+                      : "Enviar agora"}
+                  </button>
                 </div>
 
-                <p className="text-sm text-[#8f9f8a]">
-                  Preview dos primeiros {tableEmailPreview.length}
-                  {tableEmailHiddenCount > 0
-                    ? ` · +${tableEmailHiddenCount} restantes`
-                    : ""}
-                </p>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-[1rem] border border-[#b7c4b0]/20">
-                <div className="grid grid-cols-[1fr_auto] bg-white/45 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#cdb892] sm:grid-cols-[1fr_1fr_auto]">
-                  <span>Nome</span>
-                  <span className="hidden sm:block">Email</span>
-                  <span>Mesa</span>
-                </div>
-
-                <div className="max-h-64 overflow-auto">
-                  {tableEmailPreview.map((recipient) => (
-                    <div
-                      key={recipient.email}
-                      className="grid grid-cols-[1fr_auto] gap-3 border-t border-[#b7c4b0]/15 px-4 py-3 text-sm sm:grid-cols-[1fr_1fr_auto]"
-                    >
-                      <span className="font-bold text-[#7f8f78]">
-                        {recipient.firstName}
-                      </span>
-                      <span className="hidden truncate text-[#8f9f8a] sm:block">
-                        {recipient.email}
-                      </span>
-                      <span className="font-bold text-[#cdb892]">
-                        {recipient.table} · {recipient.tableName}
-                      </span>
+                <div className="rounded-[1.3rem] border border-[#b7c4b0]/25 bg-[#fbfaf5]/50 p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#cdb892]">
+                        Lista preparada
+                      </p>
+                      <p className="mt-2 text-2xl font-extrabold text-[#b7c4b0]">
+                        {TEST_TABLE_EMAIL_RECIPIENTS.length} emails
+                      </p>
                     </div>
-                  ))}
+
+                    <p className="text-sm text-[#8f9f8a]">
+                      Preview dos primeiros {tableEmailPreview.length}
+                      {tableEmailHiddenCount > 0
+                        ? ` · +${tableEmailHiddenCount} restantes`
+                        : ""}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 overflow-hidden rounded-[1rem] border border-[#b7c4b0]/20">
+                    <div className="grid grid-cols-[1fr_auto] bg-white/45 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#cdb892] sm:grid-cols-[1fr_1fr_auto]">
+                      <span>Nome</span>
+                      <span className="hidden sm:block">Email</span>
+                      <span>Mesa</span>
+                    </div>
+
+                    <div className="max-h-64 overflow-auto">
+                      {tableEmailPreview.map((recipient) => (
+                        <div
+                          key={recipient.email}
+                          className="grid grid-cols-[1fr_auto] gap-3 border-t border-[#b7c4b0]/15 px-4 py-3 text-sm sm:grid-cols-[1fr_1fr_auto]"
+                        >
+                          <span className="font-bold text-[#7f8f78]">
+                            {recipient.firstName}
+                          </span>
+                          <span className="hidden truncate text-[#8f9f8a] sm:block">
+                            {recipient.email}
+                          </span>
+                          <span className="font-bold text-[#cdb892]">
+                            {recipient.table} · {recipient.tableName}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+
+                {tableEmailError && (
+                  <p className="mt-4 rounded-[1.3rem] border border-[#d9a6a6]/45 bg-[#d9a6a6]/15 px-4 py-3 text-sm leading-6 text-[#b76f6f]">
+                    {tableEmailError}
+                  </p>
+                )}
+
+                {tableEmailResult && (
+                  <p className="mt-4 rounded-[1.3rem] border border-[#b7c4b0]/45 bg-[#b7c4b0]/15 px-4 py-3 text-sm leading-6 text-[#7f8f78]">
+                    {tableEmailResult}
+                  </p>
+                )}
               </div>
-            </div>
-
-            {tableEmailError && (
-              <p className="mt-4 rounded-[1.3rem] border border-[#d9a6a6]/45 bg-[#d9a6a6]/15 px-4 py-3 text-sm leading-6 text-[#b76f6f]">
-                {tableEmailError}
-              </p>
-            )}
-
-            {tableEmailResult && (
-              <p className="mt-4 rounded-[1.3rem] border border-[#b7c4b0]/45 bg-[#b7c4b0]/15 px-4 py-3 text-sm leading-6 text-[#7f8f78]">
-                {tableEmailResult}
-              </p>
             )}
           </section>
 
