@@ -4,6 +4,9 @@
 ALTER TABLE wedding_gallery
 ADD COLUMN IF NOT EXISTS anonymous_id text;
 
+ALTER TABLE wedding_gallery
+ADD COLUMN IF NOT EXISTS caption text;
+
 CREATE TABLE IF NOT EXISTS wedding_gallery_likes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   gallery_item_id text NOT NULL,

@@ -5,6 +5,7 @@ import WeddingWebsiteV3 from "./WeddingWebsiteV3";
 import ConvemSaber from "./convemSaber";
 import GalleryPage from "./GalleryPage";
 import GalleryAppPage from "./GalleryAppPage";
+import LiveWallPage from "./LiveWallPage";
 import ScrollToTop from "./ScrollToTop";
 
 import AdminRSVP from "./AdminRSVP";
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/admin" element={<AdminRSVP />} />
         <Route path="/galeria" element={<GalleryPage />} />
         <Route path="/app" element={<GalleryAppPage />} />
+        <Route path="/wall" element={<LiveWallPage />} />
 
         <Route path="/:guestSlug" element={<WeddingWebsiteV3 />} />
       </Routes>

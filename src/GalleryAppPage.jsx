@@ -82,6 +82,7 @@ const styles = `
 const STORY_PHOTO_DURATION = 5000;
 const STORY_VIDEO_DURATION = 8000;
 const VISITOR_ID_STORAGE_KEY = "fd-gallery-visitor-id";
+const COUPLE_APP_MESSAGE = "Hoje queremos ver o dia pelos vossos olhos.";
 
 function getOrCreateVisitorId() {
   const storedVisitorId = localStorage.getItem(VISITOR_ID_STORAGE_KEY);
@@ -100,6 +101,7 @@ export default function GalleryAppPage() {
   const storyCameraInputRef = useRef(null);
   const previewUrlsRef = useRef([]);
   const [name, setName] = useState("");
+  const [caption, setCaption] = useState("");
   const [files, setFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -145,6 +147,7 @@ export default function GalleryAppPage() {
           url: item.file_url,
           type: item.file_type,
           uploadedBy: item.uploaded_by,
+          caption: item.caption,
           createdAt: item.created_at,
           filePath: item.file_path,
           anonymousId: item.anonymous_id,
@@ -310,11 +313,12 @@ export default function GalleryAppPage() {
           .from("wedding_gallery")
           .insert({
             uploaded_by: name,
-          file_path: filePath,
-          file_url: publicUrl,
-          file_type: file.type,
-          anonymous_id: visitorId,
-        });
+            caption: caption.trim() || null,
+            file_path: filePath,
+            file_url: publicUrl,
+            file_type: file.type,
+            anonymous_id: visitorId,
+          });
 
         if (dbError) throw dbError;
 
@@ -323,6 +327,7 @@ export default function GalleryAppPage() {
           url: publicUrl,
           type: file.type,
           uploadedBy: name,
+          caption: caption.trim() || null,
           createdAt: new Date().toISOString(),
           filePath,
           anonymousId: visitorId,
@@ -337,6 +342,7 @@ export default function GalleryAppPage() {
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
       setPreviewUrls([]);
       setName("");
+      setCaption("");
       setStatus("success");
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (storyCameraInputRef.current) storyCameraInputRef.current.value = "";
@@ -361,6 +367,14 @@ export default function GalleryAppPage() {
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )
       .slice(0, 12);
+  }, [uploadedItems]);
+
+  const guestCount = useMemo(() => {
+    const guestNames = uploadedItems
+      .map((item) => item.uploadedBy?.trim().toLowerCase())
+      .filter(Boolean);
+
+    return new Set(guestNames).size;
   }, [uploadedItems]);
 
   const activeStory =
@@ -701,6 +715,20 @@ export default function GalleryAppPage() {
 
       <div className="mx-auto w-full max-w-3xl px-0 pb-14 pt-4 sm:px-5 md:pt-8">
         <div className="min-w-0 space-y-4">
+          <section className="app-card border-y border-[#ddd4c0]/70 bg-white/72 px-4 py-4 sm:rounded-[1.2rem] sm:border">
+            <p className="text-base font-extrabold leading-6 text-[#64715f]">
+              {COUPLE_APP_MESSAGE}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-[#8f9f8a]">
+              {uploadedItems.length}{" "}
+              {uploadedItems.length === 1
+                ? "memória partilhada"
+                : "memórias partilhadas"}{" "}
+              por {guestCount || 0}{" "}
+              {guestCount === 1 ? "convidado" : "convidados"}.
+            </p>
+          </section>
+
           <section className="app-card border-y border-[#ddd4c0]/70 bg-white/70 py-4 sm:rounded-[1.2rem] sm:border sm:mx-0">
             <div className="no-scrollbar flex max-w-full gap-4 overflow-x-auto px-4">
               <button
@@ -780,6 +808,17 @@ export default function GalleryAppPage() {
               />
 
             </div>
+
+            <textarea
+              value={caption}
+              onChange={(event) => setCaption(event.target.value.slice(0, 120))}
+              rows={2}
+              placeholder="Legenda opcional..."
+              className="mt-4 w-full resize-none rounded-[1rem] border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-base text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15 sm:text-sm"
+            />
+            <p className="mt-1 text-right text-[11px] font-semibold text-[#9aa792]">
+              {caption.length}/120
+            </p>
 
             <label
               className={`mt-4 flex cursor-pointer flex-col items-center justify-center rounded-[1rem] border border-dashed px-4 py-8 text-center transition ${
@@ -1056,7 +1095,7 @@ export default function GalleryAppPage() {
                         <span className="font-extrabold">
                           {item.uploadedBy || "Convidado"}
                         </span>{" "}
-                        partilhou uma memória do casamento.
+                        {item.caption || "partilhou uma memória do casamento."}
                       </p>
 
                       {!!commentsByItem[item.galleryId]?.length && (
@@ -1136,14 +1175,14 @@ export default function GalleryAppPage() {
 
       {commentSheetItem && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-0 backdrop-blur-sm sm:items-center sm:px-4"
+          className="fixed inset-x-0 bottom-0 top-0 z-50 flex items-end justify-center bg-black/45 px-0 backdrop-blur-sm sm:items-center sm:px-4"
           onClick={() => setCommentSheetItem(null)}
         >
           <div
-            className="flex max-h-[82vh] w-full max-w-xl flex-col overflow-hidden rounded-t-[1.6rem] bg-[#fbfaf5] shadow-[0_-18px_45px_rgba(0,0,0,0.16)] sm:rounded-[1.4rem]"
+            className="flex h-[82dvh] max-h-[720px] w-full max-w-xl flex-col overflow-hidden rounded-t-[1.6rem] bg-[#fbfaf5] shadow-[0_-18px_45px_rgba(0,0,0,0.16)] sm:h-auto sm:max-h-[82vh] sm:rounded-[1.4rem]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="border-b border-[#ddd4c0]/80 px-4 py-4">
+            <div className="shrink-0 border-b border-[#ddd4c0]/80 px-4 py-4">
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#d8d0bd] sm:hidden" />
 
               <div className="flex items-center justify-between gap-3">
@@ -1220,7 +1259,7 @@ export default function GalleryAppPage() {
 
             <form
               onSubmit={(event) => submitComment(event, commentSheetItem)}
-              className="space-y-3 border-t border-[#ddd4c0]/80 bg-white/70 px-4 py-3"
+              className="shrink-0 space-y-3 border-t border-[#ddd4c0]/80 bg-white/85 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3"
             >
               <input
                 value={commentNameDrafts[commentSheetItem.galleryId] || ""}
@@ -1231,7 +1270,7 @@ export default function GalleryAppPage() {
                   }))
                 }
                 placeholder="O teu nome"
-                className="w-full rounded-full border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-sm text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15"
+                className="w-full rounded-full border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-base text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15 sm:text-sm"
               />
 
               <div className="flex items-center gap-3">
@@ -1244,7 +1283,7 @@ export default function GalleryAppPage() {
                     }))
                   }
                   placeholder="Adicionar comentário..."
-                  className="min-w-0 flex-1 rounded-full border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-sm text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15"
+                  className="min-w-0 flex-1 rounded-full border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-base text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15 sm:text-sm"
                 />
 
                 <button
@@ -1257,7 +1296,7 @@ export default function GalleryAppPage() {
             </form>
 
             {commentErrors[commentSheetItem.galleryId] && (
-              <p className="bg-white/70 px-4 pb-3 text-xs font-semibold text-[#c76d70]">
+              <p className="shrink-0 bg-white/85 px-4 pb-3 text-xs font-semibold text-[#c76d70]">
                 {commentErrors[commentSheetItem.galleryId]}
               </p>
             )}
@@ -1354,7 +1393,7 @@ export default function GalleryAppPage() {
                 <span className="font-extrabold">
                   {activeStory.uploadedBy || "Convidado"}
                 </span>{" "}
-                partilhou uma memória.
+                {activeStory.caption || "partilhou uma memória."}
               </p>
             </div>
           </div>
