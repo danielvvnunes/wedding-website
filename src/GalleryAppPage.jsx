@@ -74,14 +74,30 @@ const styles = `
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
-.app-card {
-  box-shadow: 0 14px 38px rgba(143,159,138,0.12);
-}
-`;
+	.app-card {
+	  box-shadow: 0 14px 38px rgba(143,159,138,0.12);
+	}
 
+	.story-strip {
+	  backface-visibility: hidden;
+	  contain: layout paint;
+	  transform: translateZ(0);
+	}
+
+	.feed-post {
+	  content-visibility: auto;
+	  contain-intrinsic-size: 760px;
+	}
+	`;
+	
 const STORY_PHOTO_DURATION = 5000;
 const STORY_VIDEO_DURATION = 8000;
+const POST_PAGE_SIZE = 24;
 const VISITOR_ID_STORAGE_KEY = "fd-gallery-visitor-id";
+const GALLERY_COLUMNS =
+  "id, file_url, file_type, file_path, uploaded_by, caption, anonymous_id, created_at";
+const GALLERY_COLUMNS_WITHOUT_CAPTION =
+  "id, file_url, file_type, file_path, uploaded_by, anonymous_id, created_at";
 
 function getOrCreateVisitorId() {
   const storedVisitorId = localStorage.getItem(VISITOR_ID_STORAGE_KEY);
@@ -91,6 +107,37 @@ function getOrCreateVisitorId() {
   const newVisitorId = crypto.randomUUID();
   localStorage.setItem(VISITOR_ID_STORAGE_KEY, newVisitorId);
   return newVisitorId;
+}
+
+function mapGalleryItem(item) {
+  return {
+    galleryId: String(item.file_path || item.id || item.file_url),
+    url: item.file_url,
+    type: item.file_type,
+    uploadedBy: item.uploaded_by,
+    caption: item.caption,
+    createdAt: item.created_at,
+    filePath: item.file_path,
+    anonymousId: item.anonymous_id,
+  };
+}
+
+async function fetchGalleryPage(from = 0, to = POST_PAGE_SIZE - 1) {
+  let response = await supabase
+    .from("wedding_gallery")
+    .select(GALLERY_COLUMNS)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (response.error?.message?.includes("caption")) {
+    response = await supabase
+      .from("wedding_gallery")
+      .select(GALLERY_COLUMNS_WITHOUT_CAPTION)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+  }
+
+  return response;
 }
 
 export default function GalleryAppPage() {
@@ -106,6 +153,8 @@ export default function GalleryAppPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState(null);
   const [uploadedItems, setUploadedItems] = useState([]);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [visitorId] = useState(getOrCreateVisitorId);
   const [likesByItem, setLikesByItem] = useState({});
@@ -132,28 +181,16 @@ export default function GalleryAppPage() {
 
   useEffect(() => {
     async function loadGallery() {
-      const { data, error } = await supabase
-        .from("wedding_gallery")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await fetchGalleryPage();
 
       if (error) {
         console.error(error);
         return;
       }
 
-      setUploadedItems(
-        data.map((item) => ({
-          galleryId: String(item.file_path || item.id || item.file_url),
-          url: item.file_url,
-          type: item.file_type,
-          uploadedBy: item.uploaded_by,
-          caption: item.caption,
-          createdAt: item.created_at,
-          filePath: item.file_path,
-          anonymousId: item.anonymous_id,
-        })),
-      );
+      const galleryItems = data ?? [];
+      setUploadedItems(galleryItems.map(mapGalleryItem));
+      setHasMorePosts(galleryItems.length === POST_PAGE_SIZE);
     }
 
     loadGallery();
@@ -161,7 +198,12 @@ export default function GalleryAppPage() {
 
   useEffect(() => {
     async function loadInteractions() {
-      if (!visitorId || !uploadedItems.length) return;
+      if (!visitorId || !uploadedItems.length) {
+        setLikesByItem({});
+        setLikedByVisitor({});
+        setCommentsByItem({});
+        return;
+      }
 
       const galleryIds = uploadedItems.map((item) => item.galleryId);
 
@@ -311,7 +353,7 @@ export default function GalleryAppPage() {
 
         const publicUrl = data.publicUrl;
 
-        const { error: dbError } = await supabase
+        let insertResponse = await supabase
           .from("wedding_gallery")
           .insert({
             uploaded_by: name,
@@ -322,7 +364,17 @@ export default function GalleryAppPage() {
             anonymous_id: visitorId,
           });
 
-        if (dbError) throw dbError;
+        if (insertResponse.error?.message?.includes("caption")) {
+          insertResponse = await supabase.from("wedding_gallery").insert({
+            uploaded_by: name,
+            file_path: filePath,
+            file_url: publicUrl,
+            file_type: file.type,
+            anonymous_id: visitorId,
+          });
+        }
+
+        if (insertResponse.error) throw insertResponse.error;
 
         return {
           galleryId: filePath,
@@ -355,6 +407,30 @@ export default function GalleryAppPage() {
     } finally {
       setIsUploading(false);
     }
+  }
+
+  async function loadMorePosts() {
+    if (isLoadingMorePosts || !hasMorePosts) return;
+
+    setIsLoadingMorePosts(true);
+
+    const from = uploadedItems.length;
+    const to = from + POST_PAGE_SIZE - 1;
+    const { data, error } = await fetchGalleryPage(from, to);
+
+    if (error) {
+      console.error(error);
+      setIsLoadingMorePosts(false);
+      return;
+    }
+
+    const galleryItems = data ?? [];
+    setUploadedItems((current) => [
+      ...current,
+      ...galleryItems.map(mapGalleryItem),
+    ]);
+    setHasMorePosts(galleryItems.length === POST_PAGE_SIZE);
+    setIsLoadingMorePosts(false);
   }
 
   const sortedItems = [...uploadedItems].sort((a, b) => {
@@ -743,7 +819,7 @@ export default function GalleryAppPage() {
     <main className="page-bg min-h-screen overflow-x-hidden text-[#64715f]">
       <style>{styles}</style>
 
-      <header className="sticky top-0 z-40 border-b border-[#d8d0bd]/60 bg-[#fbfaf5]/92 px-4 py-3 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-[#d8d0bd]/60 bg-[#fbfaf5] px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xl font-extrabold leading-none tracking-normal text-[#b7c4b0]">
@@ -779,7 +855,7 @@ export default function GalleryAppPage() {
 
       <div className="mx-auto w-full max-w-3xl px-0 pb-14 pt-0 sm:px-5 md:pt-0">
         <div className="min-w-0 space-y-4">
-          <section className="app-card border-y border-[#ddd4c0]/70 bg-white/70 py-4 sm:rounded-[1.2rem] sm:border sm:mx-0">
+          <section className="story-strip app-card border-y border-[#ddd4c0]/70 bg-white py-4 sm:mx-0 sm:rounded-[1.2rem] sm:border">
             <div className="no-scrollbar flex max-w-full gap-4 overflow-x-auto px-4">
               <button
                 type="button"
@@ -804,7 +880,7 @@ export default function GalleryAppPage() {
                 >
                   <span className="mx-auto block h-16 w-16 rounded-full bg-gradient-to-tr from-[#b7c4b0] via-[#f4e3bd] to-[#cdb892] p-[2px]">
                     <span className="block h-full w-full overflow-hidden rounded-full border-2 border-[#fbfaf5] bg-[#f8f5ee]">
-                      {item.type?.startsWith("video/") ? (
+	                      {item.type?.startsWith("video/") ? (
 	                        <video
 	                          src={item.url}
 	                          className="h-full w-full object-cover"
@@ -812,13 +888,15 @@ export default function GalleryAppPage() {
 	                          muted
 	                          playsInline
 	                        />
-                      ) : (
-                        <img
-                          src={item.url}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      )}
+	                      ) : (
+	                        <img
+	                          src={item.url}
+	                          alt=""
+	                          className="h-full w-full object-cover"
+	                          loading={index < 4 ? "eager" : "lazy"}
+	                          decoding="async"
+	                        />
+	                      )}
                     </span>
                   </span>
                   <span className="mt-2 block truncate text-xs font-semibold text-[#7f8f78]">
@@ -1044,11 +1122,13 @@ export default function GalleryAppPage() {
 
             {uploadedItems.length ? (
               <div className="space-y-4">
-                {sortedItems.map((item, index) => (
-                  <article
-                    key={`${item.url}-${index}`}
-                    className="app-card overflow-hidden border-y border-[#ddd4c0]/70 bg-white/78 sm:rounded-[1.2rem] sm:border"
-                  >
+	                {sortedItems.map((item, index) => (
+	                  <article
+	                    key={`${item.url}-${index}`}
+	                    className={`app-card overflow-hidden border-y border-[#ddd4c0]/70 bg-white/78 sm:rounded-[1.2rem] sm:border ${
+	                      index > 1 ? "feed-post" : ""
+	                    }`}
+	                  >
                     <div className="flex items-center justify-between gap-3 px-4 py-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-tr from-[#b7c4b0] to-[#cdb892] text-sm font-extrabold text-white">
@@ -1080,7 +1160,7 @@ export default function GalleryAppPage() {
                       onClick={() => setSelectedItem(item)}
                       className="block w-full cursor-zoom-in bg-[#f8f5ee]"
                     >
-                      {item.type?.startsWith("video/") ? (
+	                      {item.type?.startsWith("video/") ? (
 	                        <video
 	                          src={item.url}
 	                          className="max-h-[70vh] w-full object-contain"
@@ -1088,14 +1168,16 @@ export default function GalleryAppPage() {
 	                          muted
 	                          playsInline
 	                        />
-                      ) : (
-                        <img
-                          src={item.url}
-                          alt=""
-                          className="max-h-[70vh] w-full object-contain"
-                          loading="lazy"
-                        />
-                      )}
+	                      ) : (
+	                        <img
+	                          src={item.url}
+	                          alt=""
+	                          className="max-h-[70vh] w-full object-contain"
+	                          loading={index < 2 ? "eager" : "lazy"}
+	                          decoding="async"
+	                          fetchPriority={index === 0 ? "high" : "auto"}
+	                        />
+	                      )}
                     </button>
 
                     <div className="px-4 py-3">
@@ -1258,10 +1340,24 @@ export default function GalleryAppPage() {
                           {commentErrors[item.galleryId]}
                         </p>
                       )}
-                    </div>
-                  </article>
-                ))}
-              </div>
+	                    </div>
+	                  </article>
+	                ))}
+	                {hasMorePosts && (
+	                  <div className="px-4 text-center sm:px-0">
+	                    <button
+	                      type="button"
+	                      onClick={loadMorePosts}
+	                      disabled={isLoadingMorePosts}
+	                      className="rounded-full border border-[#cdb892]/70 bg-white/70 px-5 py-3 text-xs font-extrabold uppercase tracking-[0.08em] text-[#b7975b] disabled:opacity-55"
+	                    >
+	                      {isLoadingMorePosts
+	                        ? "A carregar..."
+	                        : "Carregar mais memórias"}
+	                    </button>
+	                  </div>
+	                )}
+	              </div>
             ) : (
               <div className="app-card border-y border-dashed border-[#cdb892]/60 bg-white/60 px-6 py-16 text-center sm:rounded-[1.2rem] sm:border">
                 <p className="text-4xl text-[#cdb892]">+</p>
