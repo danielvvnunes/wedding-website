@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -88,12 +88,38 @@ const styles = `
 	  content-visibility: auto;
 	  contain-intrinsic-size: 760px;
 	}
+
+	.media-placeholder {
+	  background:
+	    linear-gradient(90deg, rgba(248,245,238,0), rgba(255,255,255,.64), rgba(248,245,238,0)),
+	    #f8f5ee;
+	  background-size: 220% 100%;
+	  animation: media-shimmer 1.25s ease-in-out infinite;
+	}
+
+	@keyframes media-shimmer {
+	  0% {
+	    background-position: 120% 0;
+	  }
+	  100% {
+	    background-position: -120% 0;
+	  }
+	}
 	`;
 	
 const STORY_PHOTO_DURATION = 5000;
 const STORY_VIDEO_DURATION = 8000;
-const POST_PAGE_SIZE = 24;
+const POST_PAGE_SIZE = 10;
+const POST_RENDER_BATCH = 6;
 const VISITOR_ID_STORAGE_KEY = "fd-gallery-visitor-id";
+const SUPABASE_IMAGE_BUCKET = "wedding-gallery";
+const IMAGE_UPLOAD_MAX_DIMENSION = 1920;
+const IMAGE_FEED_MAX_DIMENSION = 1280;
+const IMAGE_THUMB_MAX_DIMENSION = 360;
+const IMAGE_UPLOAD_QUALITY = 0.82;
+const IMAGE_FEED_QUALITY = 0.78;
+const IMAGE_THUMB_QUALITY = 0.7;
+const IMAGE_UPLOAD_MAX_BYTES = 1200 * 1024;
 const GALLERY_COLUMNS =
   "id, file_url, file_type, file_path, uploaded_by, caption, anonymous_id, created_at";
 const GALLERY_COLUMNS_WITHOUT_CAPTION =
@@ -110,16 +136,239 @@ function getOrCreateVisitorId() {
 }
 
 function mapGalleryItem(item) {
+  const type = item.file_type;
+  const filePath = item.file_path;
+  const originalUrl = item.file_url;
+  const variantUrls = getStoredVariantUrls({ filePath, type });
+
   return {
-    galleryId: String(item.file_path || item.id || item.file_url),
-    url: item.file_url,
-    type: item.file_type,
+    galleryId: String(filePath || item.id || originalUrl),
+    url: originalUrl,
+    thumbUrl:
+      variantUrls?.thumb ||
+      getGalleryImageUrl({ filePath, type, originalUrl }, 220, 70),
+    feedUrl:
+      variantUrls?.feed ||
+      getGalleryImageUrl({ filePath, type, originalUrl }, 1100, 78),
+    storyUrl:
+      variantUrls?.feed ||
+      getGalleryImageUrl({ filePath, type, originalUrl }, 900, 78),
+    type,
     uploadedBy: item.uploaded_by,
     caption: item.caption,
     createdAt: item.created_at,
-    filePath: item.file_path,
+    filePath,
     anonymousId: item.anonymous_id,
   };
+}
+
+function isImageType(type) {
+  return type?.startsWith("image/");
+}
+
+function shouldOptimizeImage(file) {
+  return (
+    isImageType(file.type) &&
+    !["image/gif", "image/svg+xml"].includes(file.type)
+  );
+}
+
+function getStoredVariantUrls(item) {
+  if (!isImageType(item.type) || !item.filePath) return null;
+
+  const match = item.filePath.match(/^(.*\/)?([^/]+)\/original\.[^/.]+$/);
+  if (!match) return null;
+
+  const basePath = `${match[1] || ""}${match[2]}`;
+  const { data: feedData } = supabase.storage
+    .from(SUPABASE_IMAGE_BUCKET)
+    .getPublicUrl(`${basePath}/feed.webp`);
+  const { data: thumbData } = supabase.storage
+    .from(SUPABASE_IMAGE_BUCKET)
+    .getPublicUrl(`${basePath}/thumb.webp`);
+
+  return {
+    feed: feedData.publicUrl,
+    thumb: thumbData.publicUrl,
+  };
+}
+
+function getStoredVariantPaths(filePath, type) {
+  if (!isImageType(type) || !filePath) return [filePath].filter(Boolean);
+
+  const match = filePath.match(/^(.*\/)?([^/]+)\/original\.[^/.]+$/);
+  if (!match) return [filePath];
+
+  const basePath = `${match[1] || ""}${match[2]}`;
+  return [filePath, `${basePath}/feed.webp`, `${basePath}/thumb.webp`];
+}
+
+function getGalleryImageUrl(item, width, quality) {
+  if (!isImageType(item.type) || !item.filePath) {
+    return item.originalUrl;
+  }
+
+  try {
+    const { data } = supabase.storage
+      .from(SUPABASE_IMAGE_BUCKET)
+      .getPublicUrl(item.filePath, {
+        transform: {
+          width,
+          quality,
+          resize: "contain",
+        },
+      });
+
+    return data.publicUrl || item.originalUrl;
+  } catch (error) {
+    console.error(error);
+    return item.originalUrl;
+  }
+}
+
+function getScaledDimensions(image, maxDimension) {
+  const scale = Math.min(
+    1,
+    maxDimension / Math.max(image.naturalWidth, image.naturalHeight),
+  );
+
+  return {
+    width: Math.max(1, Math.round(image.naturalWidth * scale)),
+    height: Math.max(1, Math.round(image.naturalHeight * scale)),
+  };
+}
+
+async function loadImageFromFile(file) {
+  const url = URL.createObjectURL(file);
+
+  try {
+    const image = new Image();
+    image.decoding = "async";
+
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = url;
+    });
+
+    return image;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function createWebpVariant(image, fileName, maxDimension, quality) {
+  const { width, height } = getScaledDimensions(image, maxDimension);
+  const canvas = document.createElement("canvas");
+
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d").drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise((resolve) =>
+    canvas.toBlob(resolve, "image/webp", quality),
+  );
+
+  if (!blob) return null;
+
+  return new File([blob], fileName, {
+    type: "image/webp",
+    lastModified: Date.now(),
+  });
+}
+
+async function prepareFilesForUpload(file) {
+  if (!shouldOptimizeImage(file)) {
+    return {
+      original: file,
+      feed: null,
+      thumb: null,
+    };
+  }
+
+  try {
+    const image = await loadImageFromFile(file);
+    const optimizedOriginal = await createWebpVariant(
+      image,
+      "original.webp",
+      IMAGE_UPLOAD_MAX_DIMENSION,
+      IMAGE_UPLOAD_QUALITY,
+    );
+    const feed = await createWebpVariant(
+      image,
+      "feed.webp",
+      IMAGE_FEED_MAX_DIMENSION,
+      IMAGE_FEED_QUALITY,
+    );
+    const thumb = await createWebpVariant(
+      image,
+      "thumb.webp",
+      IMAGE_THUMB_MAX_DIMENSION,
+      IMAGE_THUMB_QUALITY,
+    );
+
+    return {
+      original:
+        optimizedOriginal &&
+        (file.size > IMAGE_UPLOAD_MAX_BYTES || optimizedOriginal.size < file.size)
+          ? optimizedOriginal
+          : file,
+      feed,
+      thumb,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      original: file,
+      feed: null,
+      thumb: null,
+    };
+  }
+}
+
+function LazyVideo({
+  src,
+  className,
+  autoPlay = false,
+  controls = false,
+  muted = false,
+  playsInline = true,
+}) {
+  const containerRef = useRef(null);
+  const [shouldLoad, setShouldLoad] = useState(autoPlay);
+
+  useEffect(() => {
+    if (shouldLoad || !containerRef.current) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "700px 0px" },
+    );
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  return (
+    <div ref={containerRef} className={`media-placeholder ${className}`}>
+      {shouldLoad && (
+        <video
+          src={src}
+          className={className}
+          preload={autoPlay ? "auto" : "metadata"}
+          autoPlay={autoPlay}
+          controls={controls}
+          muted={muted}
+          playsInline={playsInline}
+        />
+      )}
+    </div>
+  );
 }
 
 async function fetchGalleryPage(from = 0, to = POST_PAGE_SIZE - 1) {
@@ -145,15 +394,19 @@ export default function GalleryAppPage() {
   const invitationPath = getGuestInvitationPath(searchParams);
   const fileInputRef = useRef(null);
   const storyCameraInputRef = useRef(null);
+  const postLoadTriggerRef = useRef(null);
   const previewUrlsRef = useRef([]);
   const [name, setName] = useState("");
   const [caption, setCaption] = useState("");
   const [files, setFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [status, setStatus] = useState(null);
   const [uploadedItems, setUploadedItems] = useState([]);
+  const [isGalleryLoading, setIsGalleryLoading] = useState(true);
   const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [renderedPostCount, setRenderedPostCount] = useState(POST_PAGE_SIZE);
   const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [visitorId] = useState(getOrCreateVisitorId);
@@ -181,16 +434,19 @@ export default function GalleryAppPage() {
 
   useEffect(() => {
     async function loadGallery() {
+      setIsGalleryLoading(true);
       const { data, error } = await fetchGalleryPage();
 
       if (error) {
         console.error(error);
+        setIsGalleryLoading(false);
         return;
       }
 
       const galleryItems = data ?? [];
       setUploadedItems(galleryItems.map(mapGalleryItem));
       setHasMorePosts(galleryItems.length === POST_PAGE_SIZE);
+      setIsGalleryLoading(false);
     }
 
     loadGallery();
@@ -323,32 +579,70 @@ export default function GalleryAppPage() {
     }
 
     setIsUploading(true);
+    setUploadProgress("A preparar as imagens...");
     setStatus(null);
 
     try {
-      const uploadPromises = files.map(async (file) => {
-        const fileExt = file.name.split(".").pop();
+      const uploaded = [];
+
+      for (const [index, selectedFile] of files.entries()) {
+        setUploadProgress(
+          `A preparar ${index + 1} de ${files.length}...`,
+        );
+
+        const preparedFiles = await prepareFilesForUpload(selectedFile);
+        const originalFile = preparedFiles.original;
+        const originalExt = originalFile.name.split(".").pop() || "jpg";
 
         const safeName = name
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "");
+          .replace(/^-|-$/g, "") || "convidado";
 
-        const filePath = `${safeName}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+        const mediaId = `${Date.now()}-${crypto.randomUUID()}`;
+        const filePath = isImageType(originalFile.type)
+          ? `${safeName}/${mediaId}/original.${originalExt}`
+          : `${safeName}/${mediaId}.${originalExt}`;
+        const uploadQueue = [
+          {
+            path: filePath,
+            file: originalFile,
+          },
+        ];
 
-        const { error } = await supabase.storage
-          .from("wedding-gallery")
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
+        if (preparedFiles.feed && preparedFiles.thumb) {
+          uploadQueue.push(
+            {
+              path: `${safeName}/${mediaId}/feed.webp`,
+              file: preparedFiles.feed,
+            },
+            {
+              path: `${safeName}/${mediaId}/thumb.webp`,
+              file: preparedFiles.thumb,
+            },
+          );
+        }
 
-        if (error) throw error;
+        setUploadProgress(
+          `A publicar ${index + 1} de ${files.length}...`,
+        );
+
+        for (const uploadItem of uploadQueue) {
+          const { error } = await supabase.storage
+            .from(SUPABASE_IMAGE_BUCKET)
+            .upload(uploadItem.path, uploadItem.file, {
+              cacheControl: "31536000",
+              upsert: false,
+              contentType: uploadItem.file.type,
+            });
+
+          if (error) throw error;
+        }
 
         const { data } = supabase.storage
-          .from("wedding-gallery")
+          .from(SUPABASE_IMAGE_BUCKET)
           .getPublicUrl(filePath);
 
         const publicUrl = data.publicUrl;
@@ -360,7 +654,7 @@ export default function GalleryAppPage() {
             caption: caption.trim() || null,
             file_path: filePath,
             file_url: publicUrl,
-            file_type: file.type,
+            file_type: originalFile.type,
             anonymous_id: visitorId,
           });
 
@@ -369,26 +663,29 @@ export default function GalleryAppPage() {
             uploaded_by: name,
             file_path: filePath,
             file_url: publicUrl,
-            file_type: file.type,
+            file_type: originalFile.type,
             anonymous_id: visitorId,
           });
         }
 
         if (insertResponse.error) throw insertResponse.error;
 
-        return {
-          galleryId: filePath,
-          url: publicUrl,
-          type: file.type,
-          uploadedBy: name,
-          caption: caption.trim() || null,
-          createdAt: new Date().toISOString(),
-          filePath,
-          anonymousId: visitorId,
-        };
-      });
+        setUploadProgress(
+          index + 1 === files.length
+            ? "A atualizar a galeria..."
+            : `A preparar ${index + 2} de ${files.length}...`,
+        );
 
-      const uploaded = await Promise.all(uploadPromises);
+        uploaded.push(mapGalleryItem({
+          file_path: filePath,
+          file_url: publicUrl,
+          file_type: originalFile.type,
+          uploaded_by: name,
+          caption: caption.trim() || null,
+          created_at: new Date().toISOString(),
+          anonymous_id: visitorId,
+        }));
+      }
 
       setUploadedItems((current) => [...uploaded, ...current]);
 
@@ -406,10 +703,11 @@ export default function GalleryAppPage() {
       setStatus("error");
     } finally {
       setIsUploading(false);
+      setUploadProgress("");
     }
   }
 
-  async function loadMorePosts() {
+  const loadMorePosts = useCallback(async function loadMorePosts() {
     if (isLoadingMorePosts || !hasMorePosts) return;
 
     setIsLoadingMorePosts(true);
@@ -431,14 +729,74 @@ export default function GalleryAppPage() {
     ]);
     setHasMorePosts(galleryItems.length === POST_PAGE_SIZE);
     setIsLoadingMorePosts(false);
-  }
+  }, [hasMorePosts, isLoadingMorePosts, uploadedItems.length]);
 
-  const sortedItems = [...uploadedItems].sort((a, b) => {
-    const dateA = new Date(a.createdAt).getTime();
-    const dateB = new Date(b.createdAt).getTime();
+  const sortedItems = useMemo(() => {
+    return [...uploadedItems].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
 
-    return sortOrder === "recent" ? dateB - dateA : dateA - dateB;
-  });
+      return sortOrder === "recent" ? dateB - dateA : dateA - dateB;
+    });
+  }, [sortOrder, uploadedItems]);
+  const visiblePosts = useMemo(
+    () => sortedItems.slice(0, renderedPostCount),
+    [renderedPostCount, sortedItems],
+  );
+  const hasHiddenLoadedPosts = renderedPostCount < sortedItems.length;
+
+  useEffect(() => {
+    const trigger = postLoadTriggerRef.current;
+    if (!trigger || isGalleryLoading) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+
+        if (hasHiddenLoadedPosts) {
+          setRenderedPostCount((current) =>
+            Math.min(current + POST_RENDER_BATCH, sortedItems.length),
+          );
+          return;
+        }
+
+        if (hasMorePosts && !isLoadingMorePosts) {
+          loadMorePosts();
+        }
+      },
+      { rootMargin: "1000px 0px" },
+    );
+
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [
+    hasHiddenLoadedPosts,
+    hasMorePosts,
+    isGalleryLoading,
+    isLoadingMorePosts,
+    sortedItems.length,
+    loadMorePosts,
+    uploadedItems.length,
+  ]);
+
+  useEffect(() => {
+    const imagesToPrefetch = visiblePosts
+      .filter((item) => isImageType(item.type))
+      .slice(1, 4);
+    const preloadedImages = imagesToPrefetch.map((item) => {
+      const image = new Image();
+      image.decoding = "async";
+      image.src = item.feedUrl;
+      return image;
+    });
+
+    return () => {
+      preloadedImages.forEach((image) => {
+        image.onload = null;
+        image.onerror = null;
+      });
+    };
+  }, [visiblePosts]);
 
   const storyItems = useMemo(() => {
     return [...uploadedItems]
@@ -714,8 +1072,8 @@ export default function GalleryAppPage() {
 
     if (item.filePath) {
       const { error: storageError } = await supabase.storage
-        .from("wedding-gallery")
-        .remove([item.filePath]);
+        .from(SUPABASE_IMAGE_BUCKET)
+        .remove(getStoredVariantPaths(item.filePath, item.type));
 
       if (storageError) console.error(storageError);
     }
@@ -871,7 +1229,14 @@ export default function GalleryAppPage() {
                 </span>
               </button>
 
-              {storyItems.length ? storyItems.map((item, index) => (
+              {isGalleryLoading ? (
+                [0, 1, 2, 3].map((item) => (
+                  <div key={`loading-story-${item}`} className="w-[74px] shrink-0">
+                    <div className="media-placeholder mx-auto h-16 w-16 rounded-full" />
+                    <div className="media-placeholder mx-auto mt-2 h-3 w-12 rounded-full" />
+                  </div>
+                ))
+              ) : storyItems.length ? storyItems.map((item, index) => (
                 <button
                   type="button"
                   key={`${item.url}-story-${index}`}
@@ -890,11 +1255,17 @@ export default function GalleryAppPage() {
 	                        />
 	                      ) : (
 	                        <img
-	                          src={item.url}
+	                          src={item.thumbUrl}
 	                          alt=""
 	                          className="h-full w-full object-cover"
 	                          loading={index < 4 ? "eager" : "lazy"}
 	                          decoding="async"
+	                          fetchPriority={index < 2 ? "high" : "low"}
+	                          onError={(event) => {
+	                            if (event.currentTarget.src !== item.url) {
+	                              event.currentTarget.src = item.url;
+	                            }
+	                          }}
 	                        />
 	                      )}
                     </span>
@@ -994,6 +1365,7 @@ export default function GalleryAppPage() {
                           src={url}
                           alt=""
                           className="h-full w-full object-cover"
+                          decoding="async"
                         />
                       )}
 
@@ -1071,6 +1443,12 @@ export default function GalleryAppPage() {
                 </div>
               </div>
 
+              {isUploading && uploadProgress && (
+                <div className="rounded-[0.9rem] border border-[#d8d0bd]/70 bg-[#f8f5ee] px-4 py-3 text-center text-sm font-semibold text-[#8f9f8a]">
+                  {uploadProgress}
+                </div>
+              )}
+
               {status && (
                 <p className="text-center text-sm font-semibold text-[#8f9f8a]">
                   {status === "success" &&
@@ -1095,9 +1473,12 @@ export default function GalleryAppPage() {
               </h1>
 
               <div className="flex rounded-full border border-[#d8d0bd]/80 bg-white/60 p-1">
-                <button
-                  type="button"
-                  onClick={() => setSortOrder("recent")}
+	                <button
+	                  type="button"
+	                  onClick={() => {
+	                    setSortOrder("recent");
+	                    setRenderedPostCount(POST_PAGE_SIZE);
+	                  }}
                   className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${
                     sortOrder === "recent"
                       ? "bg-[#cdb892] text-white"
@@ -1106,9 +1487,12 @@ export default function GalleryAppPage() {
                 >
                   Recentes
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSortOrder("oldest")}
+	                <button
+	                  type="button"
+	                  onClick={() => {
+	                    setSortOrder("oldest");
+	                    setRenderedPostCount(POST_PAGE_SIZE);
+	                  }}
                   className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${
                     sortOrder === "oldest"
                       ? "bg-[#cdb892] text-white"
@@ -1120,9 +1504,31 @@ export default function GalleryAppPage() {
               </div>
             </div>
 
-            {uploadedItems.length ? (
+            {isGalleryLoading ? (
               <div className="space-y-4">
-	                {sortedItems.map((item, index) => (
+                {[0, 1, 2].map((item) => (
+                  <article
+                    key={`loading-post-${item}`}
+                    className="app-card overflow-hidden border-y border-[#ddd4c0]/70 bg-white/78 sm:rounded-[1.2rem] sm:border"
+                  >
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="media-placeholder h-10 w-10 shrink-0 rounded-full" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="media-placeholder h-3 w-32 rounded-full" />
+                        <div className="media-placeholder h-2.5 w-20 rounded-full" />
+                      </div>
+                    </div>
+                    <div className="media-placeholder aspect-[4/5] w-full" />
+                    <div className="space-y-3 px-4 py-4">
+                      <div className="media-placeholder h-3 w-24 rounded-full" />
+                      <div className="media-placeholder h-3 w-3/4 rounded-full" />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : uploadedItems.length ? (
+              <div className="space-y-4">
+	                {visiblePosts.map((item, index) => (
 	                  <article
 	                    key={`${item.url}-${index}`}
 	                    className={`app-card overflow-hidden border-y border-[#ddd4c0]/70 bg-white/78 sm:rounded-[1.2rem] sm:border ${
@@ -1158,24 +1564,28 @@ export default function GalleryAppPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedItem(item)}
-                      className="block w-full cursor-zoom-in bg-[#f8f5ee]"
+                      className="media-placeholder flex aspect-[4/5] w-full cursor-zoom-in items-center justify-center bg-[#f8f5ee]"
                     >
 	                      {item.type?.startsWith("video/") ? (
-	                        <video
+	                        <LazyVideo
 	                          src={item.url}
-	                          className="max-h-[70vh] w-full object-contain"
-	                          preload="metadata"
+	                          className="h-full w-full object-contain"
 	                          muted
 	                          playsInline
 	                        />
 	                      ) : (
 	                        <img
-	                          src={item.url}
+	                          src={item.feedUrl}
 	                          alt=""
-	                          className="max-h-[70vh] w-full object-contain"
-	                          loading={index < 2 ? "eager" : "lazy"}
+	                          className="h-full w-full object-contain"
+	                          loading={index === 0 ? "eager" : "lazy"}
 	                          decoding="async"
-	                          fetchPriority={index === 0 ? "high" : "auto"}
+	                          fetchPriority={index === 0 ? "high" : "low"}
+	                          onError={(event) => {
+	                            if (event.currentTarget.src !== item.url) {
+	                              event.currentTarget.src = item.url;
+	                            }
+	                          }}
 	                        />
 	                      )}
                     </button>
@@ -1343,11 +1753,24 @@ export default function GalleryAppPage() {
 	                    </div>
 	                  </article>
 	                ))}
-	                {hasMorePosts && (
+	                {(hasMorePosts || hasHiddenLoadedPosts) && (
 	                  <div className="px-4 text-center sm:px-0">
+	                    <div ref={postLoadTriggerRef} className="h-1 w-full" />
 	                    <button
 	                      type="button"
-	                      onClick={loadMorePosts}
+	                      onClick={() => {
+	                        if (hasHiddenLoadedPosts) {
+	                          setRenderedPostCount((current) =>
+	                            Math.min(
+	                              current + POST_RENDER_BATCH,
+	                              sortedItems.length,
+	                            ),
+	                          );
+	                          return;
+	                        }
+
+	                        loadMorePosts();
+	                      }}
 	                      disabled={isLoadingMorePosts}
 	                      className="rounded-full border border-[#cdb892]/70 bg-white/70 px-5 py-3 text-xs font-extrabold uppercase tracking-[0.08em] text-[#b7975b] disabled:opacity-55"
 	                    >
@@ -1578,9 +2001,15 @@ export default function GalleryAppPage() {
               ) : (
                 <img
                   key={activeStory.url}
-                  src={activeStory.url}
+                  src={activeStory.storyUrl}
                   alt=""
                   className="h-full w-full object-contain"
+                  decoding="async"
+                  onError={(event) => {
+                    if (event.currentTarget.src !== activeStory.url) {
+                      event.currentTarget.src = activeStory.url;
+                    }
+                  }}
                 />
               )}
 
@@ -1636,9 +2065,15 @@ export default function GalleryAppPage() {
               />
             ) : (
               <img
-                src={selectedItem.url}
+                src={selectedItem.feedUrl}
                 alt=""
                 className="max-h-[82vh] w-full rounded-[1.5rem] object-contain"
+                decoding="async"
+                onError={(event) => {
+                  if (event.currentTarget.src !== selectedItem.url) {
+                    event.currentTarget.src = selectedItem.url;
+                  }
+                }}
               />
             )}
           </div>
