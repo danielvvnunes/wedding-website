@@ -109,8 +109,8 @@ const styles = `
 	
 const STORY_PHOTO_DURATION = 5000;
 const STORY_VIDEO_DURATION = 8000;
-const POST_PAGE_SIZE = 10;
-const POST_RENDER_BATCH = 6;
+const POST_PAGE_SIZE = 6;
+const POST_RENDER_BATCH = 4;
 const VISITOR_ID_STORAGE_KEY = "fd-gallery-visitor-id";
 const SUPABASE_IMAGE_BUCKET = "wedding-gallery";
 const IMAGE_UPLOAD_MAX_DIMENSION = 1920;
@@ -146,10 +146,10 @@ function mapGalleryItem(item) {
     url: originalUrl,
     thumbUrl:
       variantUrls?.thumb ||
-      getGalleryImageUrl({ filePath, type, originalUrl }, 220, 70),
+      getGalleryImageUrl({ filePath, type, originalUrl }, 520, 62),
     feedUrl:
       variantUrls?.feed ||
-      getGalleryImageUrl({ filePath, type, originalUrl }, 1100, 78),
+      getGalleryImageUrl({ filePath, type, originalUrl }, 900, 72),
     storyUrl:
       variantUrls?.feed ||
       getGalleryImageUrl({ filePath, type, originalUrl }, 900, 78),
@@ -515,7 +515,8 @@ export default function GalleryAppPage() {
       }
     }
 
-    loadInteractions();
+    const timer = window.setTimeout(loadInteractions, 900);
+    return () => window.clearTimeout(timer);
   }, [uploadedItems, visitorId]);
 
   useEffect(() => {
@@ -779,31 +780,12 @@ export default function GalleryAppPage() {
     uploadedItems.length,
   ]);
 
-  useEffect(() => {
-    const imagesToPrefetch = visiblePosts
-      .filter((item) => isImageType(item.type))
-      .slice(1, 4);
-    const preloadedImages = imagesToPrefetch.map((item) => {
-      const image = new Image();
-      image.decoding = "async";
-      image.src = item.feedUrl;
-      return image;
-    });
-
-    return () => {
-      preloadedImages.forEach((image) => {
-        image.onload = null;
-        image.onerror = null;
-      });
-    };
-  }, [visiblePosts]);
-
   const storyItems = useMemo(() => {
     return [...uploadedItems]
       .sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )
-      .slice(0, 12);
+      .slice(0, 6);
   }, [uploadedItems]);
 
   const activeStory =
@@ -1246,13 +1228,9 @@ export default function GalleryAppPage() {
                   <span className="mx-auto block h-16 w-16 rounded-full bg-gradient-to-tr from-[#b7c4b0] via-[#f4e3bd] to-[#cdb892] p-[2px]">
                     <span className="block h-full w-full overflow-hidden rounded-full border-2 border-[#fbfaf5] bg-[#f8f5ee]">
 	                      {item.type?.startsWith("video/") ? (
-	                        <video
-	                          src={item.url}
-	                          className="h-full w-full object-cover"
-	                          preload="metadata"
-	                          muted
-	                          playsInline
-	                        />
+	                        <span className="grid h-full w-full place-items-center bg-[#e8dfcf] text-xl text-white">
+	                          ▶
+	                        </span>
 	                      ) : (
 	                        <img
 	                          src={item.thumbUrl}
@@ -1575,7 +1553,7 @@ export default function GalleryAppPage() {
 	                        />
 	                      ) : (
 	                        <img
-	                          src={item.feedUrl}
+	                          src={item.thumbUrl}
 	                          alt=""
 	                          className="h-full w-full object-contain"
 	                          loading={index === 0 ? "eager" : "lazy"}
