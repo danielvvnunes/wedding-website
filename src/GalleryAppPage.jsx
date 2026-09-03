@@ -176,16 +176,13 @@ function shouldOptimizeImage(file) {
 function getStoredVariantUrls(item) {
   if (!isImageType(item.type) || !item.filePath) return null;
 
-  const match = item.filePath.match(/^(.*\/)?([^/]+)\/original\.[^/.]+$/);
-  if (!match) return null;
-
-  const basePath = `${match[1] || ""}${match[2]}`;
+  const basePath = getVariantBasePath(item.filePath);
   const { data: feedData } = supabase.storage
     .from(SUPABASE_IMAGE_BUCKET)
-    .getPublicUrl(`${basePath}/feed.webp`);
+    .getPublicUrl(`${basePath}/feed.jpg`);
   const { data: thumbData } = supabase.storage
     .from(SUPABASE_IMAGE_BUCKET)
-    .getPublicUrl(`${basePath}/thumb.webp`);
+    .getPublicUrl(`${basePath}/thumb.jpg`);
 
   return {
     feed: feedData.publicUrl,
@@ -196,11 +193,21 @@ function getStoredVariantUrls(item) {
 function getStoredVariantPaths(filePath, type) {
   if (!isImageType(type) || !filePath) return [filePath].filter(Boolean);
 
-  const match = filePath.match(/^(.*\/)?([^/]+)\/original\.[^/.]+$/);
-  if (!match) return [filePath];
+  const basePath = getVariantBasePath(filePath);
+  return [
+    filePath,
+    `${basePath}/feed.jpg`,
+    `${basePath}/thumb.jpg`,
+    `${basePath}/feed.webp`,
+    `${basePath}/thumb.webp`,
+  ];
+}
 
-  const basePath = `${match[1] || ""}${match[2]}`;
-  return [filePath, `${basePath}/feed.webp`, `${basePath}/thumb.webp`];
+function getVariantBasePath(filePath) {
+  const originalMatch = filePath.match(/^(.*\/)?([^/]+)\/original\.[^/.]+$/);
+  if (originalMatch) return `${originalMatch[1] || ""}${originalMatch[2]}`;
+
+  return filePath.replace(/\.[^/.]+$/, "");
 }
 
 function getGalleryImageUrl(item, width, quality) {
@@ -257,7 +264,7 @@ async function loadImageFromFile(file) {
   }
 }
 
-async function createWebpVariant(image, fileName, maxDimension, quality) {
+async function createImageVariant(image, fileName, maxDimension, quality) {
   const { width, height } = getScaledDimensions(image, maxDimension);
   const canvas = document.createElement("canvas");
 
@@ -266,13 +273,13 @@ async function createWebpVariant(image, fileName, maxDimension, quality) {
   canvas.getContext("2d").drawImage(image, 0, 0, width, height);
 
   const blob = await new Promise((resolve) =>
-    canvas.toBlob(resolve, "image/webp", quality),
+    canvas.toBlob(resolve, "image/jpeg", quality),
   );
 
   if (!blob) return null;
 
   return new File([blob], fileName, {
-    type: "image/webp",
+    type: "image/jpeg",
     lastModified: Date.now(),
   });
 }
@@ -288,21 +295,21 @@ async function prepareFilesForUpload(file) {
 
   try {
     const image = await loadImageFromFile(file);
-    const optimizedOriginal = await createWebpVariant(
+    const optimizedOriginal = await createImageVariant(
       image,
-      "original.webp",
+      "original.jpg",
       IMAGE_UPLOAD_MAX_DIMENSION,
       IMAGE_UPLOAD_QUALITY,
     );
-    const feed = await createWebpVariant(
+    const feed = await createImageVariant(
       image,
-      "feed.webp",
+      "feed.jpg",
       IMAGE_FEED_MAX_DIMENSION,
       IMAGE_FEED_QUALITY,
     );
-    const thumb = await createWebpVariant(
+    const thumb = await createImageVariant(
       image,
-      "thumb.webp",
+      "thumb.jpg",
       IMAGE_THUMB_MAX_DIMENSION,
       IMAGE_THUMB_QUALITY,
     );
@@ -616,11 +623,11 @@ export default function GalleryAppPage() {
         if (preparedFiles.feed && preparedFiles.thumb) {
           uploadQueue.push(
             {
-              path: `${safeName}/${mediaId}/feed.webp`,
+              path: `${safeName}/${mediaId}/feed.jpg`,
               file: preparedFiles.feed,
             },
             {
-              path: `${safeName}/${mediaId}/thumb.webp`,
+              path: `${safeName}/${mediaId}/thumb.jpg`,
               file: preparedFiles.thumb,
             },
           );
