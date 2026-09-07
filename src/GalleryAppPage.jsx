@@ -1,15 +1,15 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import "./GalleryAppPage.css";
 import { supabase } from "./lib/supabase";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
-  getGuestInvitationPath,
   saveGuestInvitationSlug,
 } from "./lib/guestInvitation";
 
 const styles = `
 @import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap");
 
-* {
+.gallery-app {
   font-family: "Urbanist", Arial, Helvetica, sans-serif;
 }
 
@@ -107,6 +107,8 @@ const styles = `
 	}
 	`;
 	
+const postDateFormatter = new Intl.DateTimeFormat("pt-PT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
 const STORY_PHOTO_DURATION = 5000;
 const STORY_VIDEO_DURATION = 8000;
 const POST_PAGE_SIZE = 6;
@@ -362,7 +364,7 @@ function LazyVideo({
   }, [shouldLoad]);
 
   return (
-    <div ref={containerRef} className={`media-placeholder ${className}`}>
+    <div ref={containerRef} className={`bg-[#f8f5ee] ${className}`}>
       {shouldLoad && (
         <video
           src={src}
@@ -378,27 +380,32 @@ function LazyVideo({
   );
 }
 
-async function fetchGalleryPage(from = 0, to = POST_PAGE_SIZE - 1) {
+async function fetchGalleryPage(from = 0, to = POST_PAGE_SIZE - 1, sortOrder = "recent") {
   let response = await supabase
     .from("wedding_gallery")
     .select(GALLERY_COLUMNS)
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: sortOrder === "oldest" })
+    .order("id", { ascending: sortOrder === "oldest" })
     .range(from, to);
 
   if (response.error?.message?.includes("caption")) {
     response = await supabase
       .from("wedding_gallery")
       .select(GALLERY_COLUMNS_WITHOUT_CAPTION)
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: sortOrder === "oldest" })
+      .order("id", { ascending: sortOrder === "oldest" })
       .range(from, to);
   }
 
   return response;
 }
 
+function AlbumIcon({ name }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{name === "plus" ? <path d="M12 5v14M5 12h14" /> : name === "grid" ? <><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></> : <><rect x="5" y="3" width="14" height="11" rx="2" /><path d="M5 18h14M5 22h14" /></>}</svg>;
+}
+
 export default function GalleryAppPage() {
   const [searchParams] = useSearchParams();
-  const invitationPath = getGuestInvitationPath(searchParams);
   const fileInputRef = useRef(null);
   const storyCameraInputRef = useRef(null);
   const postLoadTriggerRef = useRef(null);
@@ -429,10 +436,48 @@ export default function GalleryAppPage() {
   const [commentSheetItem, setCommentSheetItem] = useState(null);
   const [deleteErrors, setDeleteErrors] = useState({});
   const [storyViewerIndex, setStoryViewerIndex] = useState(null);
-  const [storyProgress, setStoryProgress] = useState(0);
   const [sortOrder, setSortOrder] = useState("recent");
   const [isDragging, setIsDragging] = useState(false);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [composerMode, setComposerMode] = useState("post");
+  const [viewMode, setViewMode] = useState("feed");
+  const [galleryError, setGalleryError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const loadedInteractionIds = useRef(new Set());
+  const pageRequest = useRef(0);
+  const loadingMoreRef = useRef(false);
+  const modalRef = useRef(null);
+  const hasModal = isComposerOpen || !!commentSheetItem || !!selectedItem || storyViewerIndex !== null;
+
+  useEffect(() => {
+    if (!hasModal) return undefined;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusable = () => Array.from(modalRef.current?.querySelectorAll('button:not(:disabled), input:not([type="file"]):not(:disabled), textarea:not(:disabled), [tabindex="0"]') || []);
+    focusable()[0]?.focus();
+    function onKeyDown(event) {
+      if (event.key === "Escape" && !isUploading) {
+        setIsComposerOpen(false);
+        setCommentSheetItem(null);
+        setSelectedItem(null);
+        setStoryViewerIndex(null);
+      }
+      if (event.key === "Tab") {
+        const controls = focusable();
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus();
+    };
+  }, [hasModal, isUploading]);
 
   useEffect(() => {
     const convite = searchParams.get("convite");
@@ -440,35 +485,44 @@ export default function GalleryAppPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    const request = ++pageRequest.current;
+    let cancelled = false;
     async function loadGallery() {
       setIsGalleryLoading(true);
-      const { data, error } = await fetchGalleryPage();
-
+      setGalleryError(false);
+      setHasMorePosts(false);
+      setIsLoadingMorePosts(false);
+      loadingMoreRef.current = false;
+      const { data, error } = await fetchGalleryPage(0, POST_PAGE_SIZE - 1, sortOrder);
+      if (cancelled || request !== pageRequest.current) return;
       if (error) {
         console.error(error);
-        setIsGalleryLoading(false);
-        return;
+        setGalleryError(true);
+      } else {
+        const galleryItems = data ?? [];
+        setUploadedItems(galleryItems.map(mapGalleryItem));
+        setRenderedPostCount(POST_PAGE_SIZE);
+        setHasMorePosts(galleryItems.length === POST_PAGE_SIZE);
       }
-
-      const galleryItems = data ?? [];
-      setUploadedItems(galleryItems.map(mapGalleryItem));
-      setHasMorePosts(galleryItems.length === POST_PAGE_SIZE);
       setIsGalleryLoading(false);
     }
-
     loadGallery();
-  }, []);
+    return () => { cancelled = true; };
+  }, [sortOrder, reloadKey]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadInteractions() {
       if (!visitorId || !uploadedItems.length) {
+        loadedInteractionIds.current.clear();
         setLikesByItem({});
         setLikedByVisitor({});
         setCommentsByItem({});
         return;
       }
 
-      const galleryIds = uploadedItems.map((item) => item.galleryId);
+      const galleryIds = uploadedItems.map((item) => item.galleryId).filter((id) => !loadedInteractionIds.current.has(id));
+      if (!galleryIds.length) return;
 
       const [
         { data: likes, error: likesError },
@@ -487,11 +541,14 @@ export default function GalleryAppPage() {
           .order("created_at", { ascending: true }),
       ]);
 
+      if (cancelled) return;
+      if (!likesError && !commentsError) galleryIds.forEach((id) => loadedInteractionIds.current.add(id));
+
       if (likesError) {
         console.error(likesError);
       } else {
-        const likeCounts = {};
-        const visitorLikes = {};
+        const likeCounts = Object.fromEntries(galleryIds.map((id) => [id, 0]));
+        const visitorLikes = Object.fromEntries(galleryIds.map((id) => [id, false]));
 
         likes.forEach((like) => {
           likeCounts[like.gallery_item_id] =
@@ -502,14 +559,14 @@ export default function GalleryAppPage() {
           }
         });
 
-        setLikesByItem(likeCounts);
-        setLikedByVisitor(visitorLikes);
+        setLikesByItem((current) => ({ ...current, ...likeCounts }));
+        setLikedByVisitor((current) => ({ ...current, ...visitorLikes }));
       }
 
       if (commentsError) {
         console.error(commentsError);
       } else {
-        const groupedComments = {};
+        const groupedComments = Object.fromEntries(galleryIds.map((id) => [id, []]));
 
         comments.forEach((comment) => {
           groupedComments[comment.gallery_item_id] = [
@@ -518,12 +575,12 @@ export default function GalleryAppPage() {
           ];
         });
 
-        setCommentsByItem(groupedComments);
+        setCommentsByItem((current) => ({ ...current, ...groupedComments }));
       }
     }
 
     const timer = window.setTimeout(loadInteractions, 900);
-    return () => window.clearTimeout(timer);
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [uploadedItems, visitorId]);
 
   useEffect(() => {
@@ -546,10 +603,16 @@ export default function GalleryAppPage() {
     if (selectedFiles.length) setIsComposerOpen(true);
   }
 
+  function createStory() {
+    setComposerMode("story");
+    setStatus(null);
+    storyCameraInputRef.current?.click();
+  }
+
   function handleFiles(event) {
     const selectedFiles = Array.from(event.target.files || []);
-
-    updateSelectedFiles(selectedFiles);
+    if (selectedFiles.length) updateSelectedFiles([...files, ...selectedFiles]);
+    event.target.value = "";
   }
 
   function handleDrop(event) {
@@ -716,28 +779,33 @@ export default function GalleryAppPage() {
   }
 
   const loadMorePosts = useCallback(async function loadMorePosts() {
-    if (isLoadingMorePosts || !hasMorePosts) return;
+    if (loadingMoreRef.current || !hasMorePosts || galleryError) return;
+    loadingMoreRef.current = true;
+    const request = pageRequest.current;
 
     setIsLoadingMorePosts(true);
 
     const from = uploadedItems.length;
     const to = from + POST_PAGE_SIZE - 1;
-    const { data, error } = await fetchGalleryPage(from, to);
+    const { data, error } = await fetchGalleryPage(from, to, sortOrder);
+    if (request !== pageRequest.current) return;
+    loadingMoreRef.current = false;
 
     if (error) {
       console.error(error);
       setIsLoadingMorePosts(false);
+      setGalleryError(true);
       return;
     }
 
     const galleryItems = data ?? [];
-    setUploadedItems((current) => [
-      ...current,
-      ...galleryItems.map(mapGalleryItem),
-    ]);
+    setUploadedItems((current) => {
+      const existing = new Set(current.map((item) => item.galleryId));
+      return [...current, ...galleryItems.map(mapGalleryItem).filter((item) => !existing.has(item.galleryId))];
+    });
     setHasMorePosts(galleryItems.length === POST_PAGE_SIZE);
     setIsLoadingMorePosts(false);
-  }, [hasMorePosts, isLoadingMorePosts, uploadedItems.length]);
+  }, [hasMorePosts, galleryError, sortOrder, uploadedItems.length]);
 
   const sortedItems = useMemo(() => {
     return [...uploadedItems].sort((a, b) => {
@@ -772,7 +840,7 @@ export default function GalleryAppPage() {
           loadMorePosts();
         }
       },
-      { rootMargin: "1000px 0px" },
+      { rootMargin: "350px 0px" },
     );
 
     observer.observe(trigger);
@@ -807,25 +875,10 @@ export default function GalleryAppPage() {
     const duration = activeItem.type?.startsWith("video/")
       ? STORY_VIDEO_DURATION
       : STORY_PHOTO_DURATION;
-    const tick = 50;
-    const increment = 100 / (duration / tick);
-
-    const timer = window.setInterval(() => {
-      setStoryProgress((currentProgress) => {
-        if (currentProgress + increment >= 100) {
-          setStoryViewerIndex((currentIndex) => {
-            if (currentIndex === null) return null;
-            const nextIndex = currentIndex + 1;
-            return nextIndex < storyItems.length ? nextIndex : null;
-          });
-          return 0;
-        }
-
-        return currentProgress + increment;
-      });
-    }, tick);
-
-    return () => window.clearInterval(timer);
+    const timer = window.setTimeout(() => {
+      setStoryViewerIndex((current) => current === null ? null : current + 1 < storyItems.length ? current + 1 : null);
+    }, duration);
+    return () => window.clearTimeout(timer);
   }, [storyViewerIndex, storyItems]);
 
   function openStory(index) {
@@ -833,16 +886,13 @@ export default function GalleryAppPage() {
 
     setSelectedItem(null);
     setStoryViewerIndex(index);
-    setStoryProgress(0);
   }
 
   function closeStory() {
     setStoryViewerIndex(null);
-    setStoryProgress(0);
   }
 
   function showNextStory() {
-    setStoryProgress(0);
     setStoryViewerIndex((currentIndex) => {
       if (currentIndex === null) return null;
       const nextIndex = currentIndex + 1;
@@ -851,7 +901,6 @@ export default function GalleryAppPage() {
   }
 
   function showPreviousStory() {
-    setStoryProgress(0);
     setStoryViewerIndex((currentIndex) => {
       if (currentIndex === null) return null;
       return currentIndex > 0 ? currentIndex - 1 : 0;
@@ -867,12 +916,7 @@ export default function GalleryAppPage() {
   }
 
   function formatPostDate(date) {
-    return new Intl.DateTimeFormat("pt-PT", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date));
+    return postDateFormatter.format(new Date(date));
   }
 
   async function toggleLike(item) {
@@ -1163,18 +1207,18 @@ export default function GalleryAppPage() {
   }
 
   return (
-    <main className="page-bg min-h-screen overflow-x-hidden text-[#64715f]">
+    <main className="gallery-app page-bg min-h-screen overflow-x-hidden text-[#64715f]">
       <style>{styles}</style>
 
-      <header className="sticky top-0 z-40 border-b border-[#d8d0bd]/60 bg-[#fbfaf5] px-4 py-3">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+      <header className="album-header sticky top-0 z-40 border-b border-[#d8d0bd]/60 bg-[#fbfaf5] px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xl font-extrabold leading-none tracking-normal text-[#b7c4b0]">
+            <p className="album-monogram">
               F · D
             </p>
-            <p className="mt-1 truncate text-[11px] font-semibold text-[#8f9f8a]">
+            <h1 className="mt-1 truncate text-[11px] font-semibold text-[#8f9f8a]">
               Galeria dos convidados
-            </p>
+            </h1>
           </div>
 
 	          <div className="flex shrink-0 items-center gap-2">
@@ -1182,6 +1226,7 @@ export default function GalleryAppPage() {
 	              type="button"
 	              onClick={() => {
 	                setStatus(null);
+                    setComposerMode("post");
 	                setIsComposerOpen(true);
 	              }}
 	              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#cdb892]/80 bg-white/55 px-3 text-xs font-extrabold text-[#b7975b]"
@@ -1190,34 +1235,29 @@ export default function GalleryAppPage() {
 	              <span className="text-lg leading-none">+</span>
 	              <span>Novo post</span>
 	            </button>
-	            <Link
-	              to={invitationPath}
-	              className="rounded-full border border-[#cdb892]/80 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b7975b]"
-            >
-              Convite
-            </Link>
+                <button
+                  type="button"
+                  onClick={createStory}
+                  className="album-new-story rounded-full border px-3 py-2 text-xs font-bold"
+                >
+                  Nova story
+                </button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-3xl px-0 pb-14 pt-0 sm:px-5 md:pt-0">
+      <div className="album-content mx-auto w-full max-w-6xl px-4 pb-14 sm:px-6">
         <div className="min-w-0 space-y-4">
-          <section className="story-strip app-card border-y border-[#ddd4c0]/70 bg-white py-4 sm:mx-0 sm:rounded-[1.2rem] sm:border">
+          {status === "success" && <p className="album-notice" role="status">✓ Memórias publicadas. Obrigado por fazerem parte da nossa história!</p>}
+          <section aria-labelledby="stories-title" className="story-strip app-card border-y border-[#ddd4c0]/70 bg-white py-4 sm:mx-0 sm:rounded-[1.2rem] sm:border">
+            <div className="album-story-heading">
+              <div><h2 id="stories-title">Stories</h2><p>Os posts recentes, em ecrã inteiro.</p></div>
+            </div>
             <div className="no-scrollbar flex max-w-full gap-4 overflow-x-auto px-4">
-              <button
-                type="button"
-                onClick={() => storyCameraInputRef.current?.click()}
-                className="w-[74px] shrink-0 text-center"
-                aria-label="Adicionar story"
-              >
-                <span className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-dashed border-[#cdb892] bg-[#f8f5ee] text-2xl text-[#cdb892]">
-                  +
-                </span>
-                <span className="mt-2 block truncate text-xs font-semibold text-[#7f8f78]">
-                  Story
-                </span>
+              <button type="button" onClick={createStory} className="w-[74px] shrink-0 text-center" aria-label="Adicionar nova story">
+                <span className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-dashed border-[#cdb892] bg-[#f8f5ee] text-3xl text-[#b7975b]" aria-hidden="true">+</span>
+                <span className="mt-2 block text-xs font-semibold text-[#8f9f8a]">A tua story</span>
               </button>
-
               {isGalleryLoading ? (
                 [0, 1, 2, 3].map((item) => (
                   <div key={`loading-story-${item}`} className="w-[74px] shrink-0">
@@ -1230,9 +1270,10 @@ export default function GalleryAppPage() {
                   type="button"
                   key={`${item.url}-story-${index}`}
                   onClick={() => openStory(index)}
-                  className="w-[74px] shrink-0 text-center"
+                  aria-label={`Ver story de ${item.uploadedBy || "Convidado"}`}
+                  className="album-story w-[74px] shrink-0 text-center"
                 >
-                  <span className="mx-auto block h-16 w-16 rounded-full bg-gradient-to-tr from-[#b7c4b0] via-[#f4e3bd] to-[#cdb892] p-[2px]">
+                  <span className="album-story-ring mx-auto block h-16 w-16 rounded-full bg-gradient-to-tr from-[#b7c4b0] via-[#f4e3bd] to-[#cdb892] p-[2px]">
                     <span className="block h-full w-full overflow-hidden rounded-full border-2 border-[#fbfaf5] bg-[#f8f5ee]">
 	                      {item.type?.startsWith("video/") ? (
 	                        <span className="grid h-full w-full place-items-center bg-[#e8dfcf] text-xl text-white">
@@ -1261,7 +1302,7 @@ export default function GalleryAppPage() {
                 </button>
               )) : (
                 <div className="flex min-h-20 min-w-56 flex-1 items-center justify-center text-center text-sm font-semibold text-[#8f9f8a]">
-                  As stories aparecem aqui quando houver posts.
+                  Ainda não há stories. Adiciona a primeira no +.
                 </div>
               )}
             </div>
@@ -1278,11 +1319,15 @@ export default function GalleryAppPage() {
 
 	          {isComposerOpen && (
 	            <div
-	              className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-0 backdrop-blur-sm sm:items-center sm:px-4"
-	              onClick={() => setIsComposerOpen(false)}
+	              className="album-composer-layer fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-0 backdrop-blur-sm sm:items-center sm:px-4"
+	              onClick={() => { if (!isUploading) setIsComposerOpen(false); }}
 	            >
 	          <form
-	            onSubmit={uploadPhotos}
+	            ref={isComposerOpen ? modalRef : undefined}
+            role="dialog"
+            aria-modal="true"
+            aria-label={composerMode === "story" ? "Nova story" : "Novo post"}
+            onSubmit={uploadPhotos}
 	            className="app-card flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[1.6rem] border-y border-[#ddd4c0]/70 bg-white sm:rounded-[1.2rem] sm:border"
 	            onClick={(event) => event.stopPropagation()}
 	          >
@@ -1292,11 +1337,13 @@ export default function GalleryAppPage() {
                   F·D
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-extrabold text-[#64715f]">Novo post</p>
+                  <p className="text-sm font-extrabold text-[#64715f]">{composerMode === "story" ? "Nova story" : "Novo post"}</p>
                   <p className="text-xs font-semibold text-[#9aa792]">
-                    {files.length
-                      ? `${files.length} ${files.length === 1 ? "ficheiro" : "ficheiros"}`
-                      : "Foto ou vídeo"}
+                    {composerMode === "story"
+                      ? "Em sequência nos stories e guardada nos posts"
+                      : files.length
+                        ? `${files.length} ${files.length === 1 ? "ficheiro" : "ficheiros"} · Publicar no feed`
+                        : "Fotos ou vídeos · Publicar no feed"}
                   </p>
                 </div>
               </div>
@@ -1304,9 +1351,9 @@ export default function GalleryAppPage() {
 	              <div className="flex shrink-0 items-center gap-3">
 	                <button
 	                  type="button"
-	                  onClick={() => setIsComposerOpen(false)}
+	                  onClick={() => { if (!isUploading) setIsComposerOpen(false); }}
 	                  className="grid h-8 w-8 place-items-center rounded-full bg-[#f8f5ee] text-xl leading-none text-[#64715f]"
-	                  aria-label="Fechar novo post"
+	                  aria-label={composerMode === "story" ? "Fechar nova story" : "Fechar novo post"}
 	                >
 	                  ×
 	                </button>
@@ -1356,6 +1403,7 @@ export default function GalleryAppPage() {
 
                       <button
                         type="button"
+                        disabled={isUploading}
                         onClick={() => removePreview(index)}
                         className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-[#fbfaf5]/95 text-sm font-bold text-[#64715f] shadow-sm"
                         aria-label="Remover ficheiro"
@@ -1367,6 +1415,7 @@ export default function GalleryAppPage() {
 
                   <button
                     type="button"
+                    disabled={isUploading}
                     onClick={() => fileInputRef.current?.click()}
                     className="grid h-44 w-24 shrink-0 place-items-center rounded-[0.9rem] border border-dashed border-[#cdb892]/80 bg-[#f8f5ee]/80 text-2xl font-semibold text-[#b7975b]"
                     aria-label="Adicionar mais ficheiros"
@@ -1377,7 +1426,8 @@ export default function GalleryAppPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
                   className={`flex aspect-[4/3] w-full flex-col items-center justify-center rounded-[1rem] border border-dashed text-center transition ${
                     isDragging
                       ? "border-[#cdb892] bg-[#f8f5ee] ring-4 ring-[#cdb892]/15"
@@ -1399,7 +1449,7 @@ export default function GalleryAppPage() {
                 </button>
               )}
 
-              <div className="flex items-start gap-3 border-t border-[#eee6d6] pt-4">
+              <fieldset disabled={isUploading} className="flex items-start gap-3 border-t border-[#eee6d6] pt-4">
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#b7c4b0] text-xs font-extrabold text-white">
                   {(name.trim() || "C").slice(0, 1).toUpperCase()}
                 </div>
@@ -1408,6 +1458,7 @@ export default function GalleryAppPage() {
                   <input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
+                    aria-label="O vosso nome"
                     placeholder="O vosso nome"
                     className="w-full border-0 bg-transparent py-1 text-base font-extrabold text-[#64715f] outline-none placeholder:font-semibold placeholder:text-[#9aa792] sm:text-sm"
                   />
@@ -1418,6 +1469,7 @@ export default function GalleryAppPage() {
                       setCaption(event.target.value.slice(0, 120))
                     }
                     rows={2}
+                    aria-label="Legenda da memória"
                     placeholder="Escrever legenda..."
                     className="mt-1 w-full resize-none border-0 bg-transparent py-1 text-base leading-6 text-[#64715f] outline-none placeholder:text-[#9aa792] sm:text-sm"
                   />
@@ -1426,7 +1478,7 @@ export default function GalleryAppPage() {
                     {caption.length}/120
                   </p>
                 </div>
-              </div>
+              </fieldset>
 
               {isUploading && uploadProgress && (
                 <div className="rounded-[0.9rem] border border-[#d8d0bd]/70 bg-[#f8f5ee] px-4 py-3 text-center text-sm font-semibold text-[#8f9f8a]">
@@ -1451,16 +1503,20 @@ export default function GalleryAppPage() {
 	            </div>
 	          )}
 
-          <section className="space-y-4">
-            <div className="flex items-center justify-between px-4 sm:px-0">
-              <h1 className="text-xl font-extrabold text-[#b7c4b0]">
-                Posts
-              </h1>
+          <section id="memorias" className="album-memories space-y-4" aria-labelledby="memories-title">
+            <div className="album-toolbar">
+              <div><h2 id="memories-title">Posts<span className="album-count">{isGalleryLoading ? "…" : `${uploadedItems.length}${hasMorePosts ? "+" : ""}`}</span></h2></div>
+              <div className="album-controls">
+                <div className="album-view-toggle" aria-label="Apresentação do álbum">
+                  <button type="button" aria-label="Vista em mosaico" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")}><AlbumIcon name="grid" /></button>
+                  <button type="button" aria-label="Vista em feed" aria-pressed={viewMode === "feed"} onClick={() => setViewMode("feed")}><AlbumIcon name="feed" /></button>
+                </div>
 
               <div className="flex rounded-full border border-[#d8d0bd]/80 bg-white/60 p-1">
 	                <button
 	                  type="button"
-	                  onClick={() => {
+	                  aria-pressed={sortOrder === "recent"}
+                  onClick={() => {
 	                    setSortOrder("recent");
 	                    setRenderedPostCount(POST_PAGE_SIZE);
 	                  }}
@@ -1474,7 +1530,8 @@ export default function GalleryAppPage() {
                 </button>
 	                <button
 	                  type="button"
-	                  onClick={() => {
+	                  aria-pressed={sortOrder === "oldest"}
+                  onClick={() => {
 	                    setSortOrder("oldest");
 	                    setRenderedPostCount(POST_PAGE_SIZE);
 	                  }}
@@ -1489,8 +1546,10 @@ export default function GalleryAppPage() {
               </div>
             </div>
 
+            </div>
+            {galleryError && <div className="album-notice" role="alert">Não foi possível carregar as memórias. <button type="button" onClick={() => setReloadKey((current) => current + 1)}>Tentar novamente ↻</button></div>}
             {isGalleryLoading ? (
-              <div className="space-y-4">
+              <div className={`album-posts album-posts--${viewMode}`} aria-label="A carregar memórias" aria-busy="true">
                 {[0, 1, 2].map((item) => (
                   <article
                     key={`loading-post-${item}`}
@@ -1512,10 +1571,10 @@ export default function GalleryAppPage() {
                 ))}
               </div>
             ) : uploadedItems.length ? (
-              <div className="space-y-4">
+              <div className={`album-posts album-posts--${viewMode}`}>
 	                {visiblePosts.map((item, index) => (
 	                  <article
-	                    key={`${item.url}-${index}`}
+	                    key={item.galleryId}
 	                    className={`app-card overflow-hidden border-y border-[#ddd4c0]/70 bg-white/78 sm:rounded-[1.2rem] sm:border ${
 	                      index > 1 ? "feed-post" : ""
 	                    }`}
@@ -1549,7 +1608,8 @@ export default function GalleryAppPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedItem(item)}
-                      className="media-placeholder flex aspect-[4/5] w-full cursor-zoom-in items-center justify-center bg-[#f8f5ee]"
+                      aria-label={`Abrir memória de ${item.uploadedBy || "Convidado"}`}
+                      className="album-post-media flex aspect-[4/5] w-full cursor-zoom-in items-center justify-center bg-[#f8f5ee]"
                     >
 	                      {item.type?.startsWith("video/") ? (
 	                        <LazyVideo
@@ -1560,8 +1620,8 @@ export default function GalleryAppPage() {
 	                        />
 	                      ) : (
 	                        <img
-	                          src={item.thumbUrl}
-	                          alt=""
+	                          src={item.feedUrl}
+	                          alt={item.caption || `Memória partilhada por ${item.uploadedBy || "Convidado"}`}
 	                          className="h-full w-full object-contain"
 	                          loading={index === 0 ? "eager" : "lazy"}
 	                          decoding="async"
@@ -1585,7 +1645,8 @@ export default function GalleryAppPage() {
                             className={`grid h-8 w-8 place-items-center ${
                               likedByVisitor[item.galleryId] ? "text-[#c76d70]" : ""
                             }`}
-                            aria-label="Gostar"
+                            aria-label={likedByVisitor[item.galleryId] ? "Retirar gosto" : "Gostar"}
+                            aria-pressed={!!likedByVisitor[item.galleryId]}
                           >
                             <svg
                               viewBox="0 0 24 24"
@@ -1739,7 +1800,7 @@ export default function GalleryAppPage() {
 	                  </article>
 	                ))}
 	                {(hasMorePosts || hasHiddenLoadedPosts) && (
-	                  <div className="px-4 text-center sm:px-0">
+	                  <div className="album-load-more px-4 text-center sm:px-0">
 	                    <div ref={postLoadTriggerRef} className="h-1 w-full" />
 	                    <button
 	                      type="button"
@@ -1766,23 +1827,24 @@ export default function GalleryAppPage() {
 	                  </div>
 	                )}
 	              </div>
-            ) : (
+            ) : !galleryError && (
               <div className="app-card border-y border-dashed border-[#cdb892]/60 bg-white/60 px-6 py-16 text-center sm:rounded-[1.2rem] sm:border">
                 <p className="text-4xl text-[#cdb892]">+</p>
-                <h2 className="mt-5 text-2xl font-extrabold text-[#b7c4b0]">
-                  Ainda não há posts
+                <h2 className="mt-5 text-2xl font-extrabold text-[#64715f]">
+                  Há uma primeira memória à vossa espera
                 </h2>
                 <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#8f9f8a]">
-                  A primeira pessoa a publicar inaugura a galeria dos
-                  convidados.
+                  Uma fotografia, um vídeo, um momento vosso. Sejam os primeiros a dar vida a este álbum.
                 </p>
+                <button type="button" className="album-primary mx-auto mt-6" onClick={() => { setComposerMode("post"); setIsComposerOpen(true); }}><AlbumIcon name="plus" /> Criar o primeiro post</button>
               </div>
             )}
           </section>
         </div>
       </div>
 
-      <footer className="px-4 pb-12 pt-2 text-center text-sm text-[#8f9f8a]">
+      <footer className="album-footer px-4 pb-12 pt-2 text-center text-sm text-[#8f9f8a]">
+        <span className="album-footer-mark" aria-hidden="true">F & D</span>
         <p>Francisca & Daniel · 26 de setembro de 2026</p>
         <p className="mt-2">casamento.franciscadaniel@gmail.com</p>
         <div className="mt-3 flex flex-wrap justify-center gap-3">
@@ -1797,6 +1859,8 @@ export default function GalleryAppPage() {
           onClick={() => setCommentSheetItem(null)}
         >
           <div
+            ref={commentSheetItem ? modalRef : undefined}
+            role="dialog" aria-modal="true" aria-label="Comentários"
             className="flex h-[82dvh] max-h-[720px] w-full max-w-xl flex-col overflow-hidden rounded-t-[1.6rem] bg-[#fbfaf5] shadow-[0_-18px_45px_rgba(0,0,0,0.16)] sm:h-auto sm:max-h-[82vh] sm:rounded-[1.4rem]"
             onClick={(event) => event.stopPropagation()}
           >
@@ -1887,7 +1951,7 @@ export default function GalleryAppPage() {
                     [commentSheetItem.galleryId]: event.target.value,
                   }))
                 }
-                placeholder="O teu nome"
+                aria-label="O teu nome" placeholder="O teu nome"
                 className="w-full rounded-full border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-base text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15 sm:text-sm"
               />
 
@@ -1900,7 +1964,7 @@ export default function GalleryAppPage() {
                       [commentSheetItem.galleryId]: event.target.value,
                     }))
                   }
-                  placeholder="Adicionar comentário..."
+                  aria-label="Comentário" placeholder="Adicionar comentário..."
                   className="min-w-0 flex-1 rounded-full border border-[#d8d0bd]/80 bg-[#fbfaf5] px-4 py-3 text-base text-[#64715f] outline-none focus:border-[#cdb892] focus:ring-4 focus:ring-[#cdb892]/15 sm:text-sm"
                 />
 
@@ -1923,7 +1987,7 @@ export default function GalleryAppPage() {
       )}
 
       {activeStory && (
-        <div className="fixed inset-0 z-50 bg-black text-white">
+        <div ref={activeStory ? modalRef : undefined} role="dialog" aria-modal="true" aria-label="Memórias em sequência" className="fixed inset-0 z-50 bg-black text-white">
           <div className="mx-auto flex h-full max-w-md flex-col bg-black">
             <div className="absolute left-0 right-0 top-0 z-20 mx-auto max-w-md px-3 pt-3">
               <div className="flex gap-1.5">
@@ -1933,13 +1997,15 @@ export default function GalleryAppPage() {
                     className="h-1 flex-1 overflow-hidden rounded-full bg-white/30"
                   >
                     <div
-                      className="h-full rounded-full bg-white"
+                      key={`${item.galleryId}-${storyViewerIndex}`}
+                      className={`h-full rounded-full bg-white ${index === storyViewerIndex ? "album-story-progress" : ""}`}
                       style={{
+                        animationDuration: `${activeStory.type?.startsWith("video/") ? STORY_VIDEO_DURATION : STORY_PHOTO_DURATION}ms`,
                         width:
                           index < storyViewerIndex
                             ? "100%"
                             : index === storyViewerIndex
-                              ? `${storyProgress}%`
+                              ? "100%"
                               : "0%",
                       }}
                     />
@@ -2030,6 +2096,8 @@ export default function GalleryAppPage() {
           onClick={() => setSelectedItem(null)}
         >
           <div
+            ref={selectedItem ? modalRef : undefined}
+            role="dialog" aria-modal="true" aria-label="Ver memória"
             className="relative max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2rem] bg-[#fbfaf5] p-3"
             onClick={(event) => event.stopPropagation()}
           >
@@ -2050,7 +2118,7 @@ export default function GalleryAppPage() {
               />
             ) : (
               <img
-                src={selectedItem.feedUrl}
+                src={selectedItem.url}
                 alt=""
                 className="max-h-[82vh] w-full rounded-[1.5rem] object-contain"
                 decoding="async"
