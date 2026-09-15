@@ -1,0 +1,15 @@
+.admin-emails { font-family: "Urbanist", Arial, Helvetica, sans-serif; }
+.admin-emails .admin-field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(183, 196, 176, .5);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+  color: #64715f;
+  font-size: 16px;
+}
+.admin-emails .admin-field:focus { outline: 2px solid #cdb892; outline-offset: 2px; }
+.admin-emails :is(button, a):focus-visible { outline: 2px solid #cdb892; outline-offset: 4px; }
+.admin-emails button, .admin-emails summary { cursor: pointer; }

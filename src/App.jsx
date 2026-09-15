@@ -10,6 +10,7 @@ const GalleryPage = lazy(() => import("./GalleryPage"));
 const GalleryAppPage = lazy(() => import("./GalleryAppPage"));
 const LiveWallPage = lazy(() => import("./LiveWallPage"));
 const AdminRSVP = lazy(() => import("./AdminRSVP"));
+const AdminEmailsPage = lazy(() => import("./AdminEmailsPage"));
 
 function PageLoader() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
 
           <Route path="/convemsaber" element={<ConvemSaber />} />
           <Route path="/admin" element={<AdminRSVP />} />
+          <Route path="/admin/emails" element={<AdminEmailsPage />} />
           <Route path="/galeria" element={<GalleryPage />} />
           <Route path="/app" element={<GalleryAppPage />} />
           <Route path="/wall" element={<LiveWallPage />} />
