@@ -446,12 +446,12 @@ export default function WeddingWebsite() {
 
             <div className="mt-14 overflow-hidden rounded-[2rem] border border-[#1f261f]/10">
               <Timeline
-                time="11:00"
+                time="11:30"
                 title="Chegada dos convidados"
                 text="Receção junto à cerimónia."
               />
               <Timeline
-                time="11:30"
+                time="12:00"
                 title="Cerimónia"
                 text="O momento em que dizemos sim."
               />

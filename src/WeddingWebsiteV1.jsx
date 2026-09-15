@@ -777,7 +777,7 @@ export default function WeddingWebsite() {
               <div className="space-y-12 md:space-y-16">
                 <Timeline
                   side="left"
-                  time="11:00"
+                  time="11:30"
                   icon="✦"
                   title="Chegada dos convidados"
                   text="Receção junto à cerimónia."
@@ -785,7 +785,7 @@ export default function WeddingWebsite() {
 
                 <Timeline
                   side="right"
-                  time="11:30"
+                  time="12:00"
                   icon="⛪"
                   title="Cerimónia"
                   text="O momento em que dizemos sim."

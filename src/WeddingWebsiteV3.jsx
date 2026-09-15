@@ -1087,13 +1087,13 @@ export default function WeddingWebsiteV3() {
             />
             <div className="mt-20 space-y-12">
               <Timeline
-                time="11:00"
+                time="11:30"
                 title="Chegada"
                 image={IgrejaImg}
                 text="Receção aos convidados junto à Igreja."
               />
               <Timeline
-                time="11:30"
+                time="12:00"
                 title="Cerimónia"
                 image={CerimoniaImg}
                 text="O momento em que dizemos sim."
