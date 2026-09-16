@@ -83,8 +83,9 @@ export function createCampaignHandler(kind) {
         return { name: person.name.trim(), table: person.table.trim(), tableName: person.tableName.trim() };
       });
       const payload = mailPayload({ email: body.testEmail.trim().toLowerCase(), people }, undefined, kind);
-      payload.subject = `[TESTE] ${payload.subject}`;
-      const result = await resend("/emails", { method: "POST", body: payload, key: `table-test-${randomUUID()}` });
+      const testId = randomUUID();
+      payload.subject = `[TESTE ${testId.slice(0, 8)}] ${payload.subject}`;
+      const result = await resend("/emails", { method: "POST", body: payload, key: `table-test-${testId}` });
       return res.status(200).json({ id: result.id });
     }
     const db = database();

@@ -77,7 +77,9 @@ test("test emails use draft people and only the test address without scheduling 
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0].to, ["test@example.com"]);
   assert.equal(calls[0].scheduled_at, undefined);
-  assert.match(calls[0].subject, /^\[TESTE\]/);
+  assert.match(calls[0].subject, /^\[TESTE [a-f0-9]{8}\]/);
+  assert.equal((await call({ testEmail: "test@example.com", people })).statusCode, 200);
+  assert.notEqual(calls[0].subject, calls[1].subject);
   for (const { name } of people) assert.ok(calls[0].html.includes(name));
   assert.ok(calls[0].text.includes("Por atribuir"));
 });
