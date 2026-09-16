@@ -1,6 +1,6 @@
 # Emails dos convidados
 
-`/admin/emails` tem duas campanhas, **Lembrete** e **Mesas**, geridas pelo mesmo painel e pelo mesmo serviço de servidor. A tabela `table_email_jobs` conserva o nome por compatibilidade; a coluna `kind` separa as campanhas. A unicidade por `(kind, email)` permite que um convidado receba ambos sem criar duplicados dentro de cada campanha. Os identificadores Resend são únicos em toda a tabela.
+`/admin/emails` tem duas campanhas, **Lembrete** e **Mesas**, geridas pelo mesmo painel e pelo mesmo serviço de servidor. A tabela `table_email_jobs` conserva o nome por compatibilidade; a coluna `kind` separa as campanhas. A unicidade por `(campaign_id, email)` permite que um convidado receba ambos sem criar duplicados dentro de cada campanha. Os identificadores Resend são únicos em toda a tabela.
 
 ## Lembrete de 19 de setembro
 
@@ -10,16 +10,16 @@ Os 93 lembretes originalmente agendados pelo script local foram importados para 
 
 Para importar novamente com segurança: `node scripts/import-reminder-campaign.mjs`. O script só permite pedidos à tabela Supabase, valida o registo, insere os identificadores em falta e nunca sobrepõe estados existentes. `node scripts/check-campaign-storage.mjs` verifica a integração local e o conteúdo guardado, sem executar ações de envio.
 
-Os emails continuam agendados no Resend e não dependem de um computador ligado na data. O estado importado “Agendado” regista a aceitação original; só uma consulta posterior ao Resend preenche `last_checked_at`. A pré-visualização de mensagens guardadas lê o payload original, não volta a gerar o template a partir dos dados atuais dos convidados.
+Os 93 agendamentos originais foram posteriormente cancelados e confirmados como cancelados no Resend. Permanecem apenas como histórico. Os envios reais usam agora a função descrita abaixo. A pré-visualização de mensagens guardadas lê o payload histórico; a pré-visualização da campanha pendente usa os dados atuais.
 
 O painel `/admin/emails`, acessível a partir de `/admin`, usa as respostas reais de `rsvp.people`. Todos os registos com email são incluídos, mesmo quando a presença é `no`. Endereços são agrupados após remover espaços exteriores e converter para minúsculas. Cada endereço recebe **uma mensagem**, com o nome e a mesa de cada pessoa; pessoas do mesmo grupo podem ter mesas diferentes.
 
 ## Estado inicial
 
 - Data por defeito: **26/09/2026 às 14:30 em Europe/Lisbon**, equivalente a `2026-09-26T13:30:00.000Z`.
-- A data é editável e o rascunho fica neste navegador até preparar a campanha.
+- A data é editável no painel e fica guardada no servidor após confirmação.
 - Não se agenda nada ao abrir o painel, guardar mesas ou publicar código.
-- Pessoas sem email são listadas à parte; nomes em falta e emails inválidos impedem preparar a campanha. Mesas em falta só impedem a campanha **Mesas**, nunca o lembrete.
+- Pessoas sem email são listadas à parte; nomes em falta e emails inválidos bloqueiam a execução do lote. Mesas em falta só bloqueiam a campanha **Mesas**, nunca o lembrete. É possível guardar um horário antes de concluir as mesas.
 - Nome, email, `table` e `tableName` são guardados no objeto original de cada pessoa em `rsvp.people`. Uma verificação da versão anterior evita sobrepor edições concorrentes.
 
 ## Configuração antes do primeiro agendamento
@@ -36,26 +36,25 @@ Sem a configuração, o painel continua a permitir organizar mesas e rever as me
 
 1. Corrigir os avisos e preencher as mesas. Guardar alterações.
 2. Abrir a pré-visualização de cada grupo. Opcionalmente, enviar uma cópia de teste **apenas** para o endereço indicado no campo de teste, após confirmação explícita. O teste usa o rascunho visível, mesmo sem guardar alterações ou preencher mesas (aparecem como “Por atribuir”). Requer nomes preenchidos, autenticação e configuração Resend no servidor; não depende da tabela de agendamentos nem da service role. Não guarda alterações nem agenda envios.
-3. Escolher a data/hora de Lisboa e clicar em **Rever e agendar**. Confirmar o número de endereços e a data apresentada.
-4. Manter o painel aberto até concluir a submissão. Cada mensagem fica primeiro registada numa outbox com conteúdo e data congelados; os pedidos de agendamento são sequenciais. Após aceitação pelo Resend, o envio futuro independe do navegador.
-5. Se houver uma interrupção, usar **Retomar agendamento**. Não se repetem mensagens com um identificador do Resend já guardado. Pedidos ambíguos usam a mesma chave de idempotência e exatamente o mesmo conteúdo. Após 23 horas sem confirmação, a repetição é bloqueada: é necessário reconciliar o estado no Resend, pois as chaves expiram após 24h.
-6. Para alterar a hora ou as mesas já preparadas, clicar em **Cancelar pendentes**, confirmar o cancelamento de todos e depois preparar uma nova versão. O histórico cancelado é conservado. Não se permite substituir uma mensagem já enviada.
-7. Usar **Atualizar entregas** para consultar o estado no Resend. Não existe webhook nesta versão. “Entregue ao servidor” não significa lido nem garante a caixa principal.
+3. Escolher a data/hora de Lisboa e clicar em **Agendar envio por função** ou **Atualizar horário**. Confirmar o número atual de endereços e a data.
+4. Podes fechar o painel: o Supabase Cron executa a função na hora marcada. Os dados atuais são lidos nessa altura e guardados antes do único pedido em lote ao Resend.
+5. Até começar, podes alterar convidados e mesas, atualizar o horário ou usar **Cancelar envio por função**. Depois de começar não é permitido reagendar pelo painel.
+6. Usar **Atualizar entregas** para consultar os emails já enviados. Não existe webhook nesta versão. “Entregue ao servidor” não significa lido nem garante a caixa principal.
 
-Uma falha parcial mantém o progresso. “Parar após o email atual” interrompe a submissão local; **não cancela** emails já agendados. Uma tentativa sem identificador Resend precisa primeiro de ser retomada/reconciliada antes do cancelamento, para não esconder um envio possivelmente aceite.
+Os comandos históricos **prepare/process** são rejeitados pela API para impedir que um painel antigo volte a agendar emails individualmente no Resend. Cancelamento e consulta de mensagens históricas mantêm-se disponíveis.
 
 ## Código e verificação
 
 - `src/lib/tableEmails.js`: agrupamento, validação, fuso horário e template HTML/texto partilhado pela pré-visualização e pelo envio.
 - `src/TableEmailPanel.jsx`: painel comum às duas campanhas, com edição, revisão, teste, agendamento, cancelamento e estado.
-- `api/table-email-campaign.js`: serviço comum, com isolamento por tipo de campanha, snapshots, idempotência e comunicação com Resend.
+- `api/table-email-campaign.js`: serviço comum para gerir horários, pré-visualizar, testar e consultar entregas.
 - `api/reminder-email-campaign.js`: configura o mesmo serviço para os lembretes.
 - `api/send-table-emails.js`: alias do novo endpoint; a antiga submissão direta de uma lista livre deixou de ser aceite.
 - `mesa-casamento-classico.html` e `mesa-casamento.txt`: referências visuais antigas; não são o template ativo.
 
 Testes sem envios reais: `node --test tests/table-emails.test.mjs tests/table-email-api.test.mjs tests/reminder-email.test.mjs`.
 
-Documentação: [agendamento](https://resend.com/docs/dashboard/emails/schedule-email), [idempotência](https://resend.com/docs/dashboard/emails/idempotency-keys), [eventos](https://resend.com/docs/webhooks/event-types).
+Documentação: [funções agendadas](https://supabase.com/docs/guides/functions/schedule-functions), [envio em lote](https://resend.com/docs/api-reference/emails/send-batch-emails), [idempotência](https://resend.com/docs/dashboard/emails/idempotency-keys), [eventos](https://resend.com/docs/webhooks/event-types).
 
 ## Envio por função em lote
 
