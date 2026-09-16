@@ -56,3 +56,29 @@ Uma falha parcial mantém o progresso. “Parar após o email atual” interromp
 Testes sem envios reais: `node --test tests/table-emails.test.mjs tests/table-email-api.test.mjs tests/reminder-email.test.mjs`.
 
 Documentação: [agendamento](https://resend.com/docs/dashboard/emails/schedule-email), [idempotência](https://resend.com/docs/dashboard/emails/idempotency-keys), [eventos](https://resend.com/docs/webhooks/event-types).
+
+## Envio por função em lote
+
+As campanhas reais são acionadas por Supabase Cron (`wedding-email-function`),
+que verifica campanhas vencidas a cada minuto e chama `send-wedding-campaign`.
+O Resend recebe um único pedido `/emails/batch` por campanha, sem `scheduled_at`.
+Datas autorizadas (Lisboa): lembrete 19/09/2026 19:04; mesas 26/09/2026 14:30.
+
+`function_email_campaigns` guarda o horário e estado. Até à execução, podem ser
+alterados os convidados/mesas. Na primeira tentativa válida, a função guarda um
+snapshot imutável; tentativas posteriores usam esse mesmo lote e chave idempotente.
+Uma lease de dois minutos evita processamento concorrente. Só há tentativas durante
+a primeira hora após o horário, dentro da janela de idempotência de 24h do Resend.
+Erros ficam visíveis no painel. Se continuar pendente após essa hora, é necessária
+intervenção; não reativar nem mudar o UUID sem reconciliar o estado no Resend.
+
+O lote inclui todos os endereços válidos, agrupados por email, até 100. Mesas ou
+nomes em falta e emails inválidos bloqueiam o lote inteiro. O histórico individual
+é inserido atomicamente após aceitação. As datas e cancelamento são geridos em
+`/admin/emails`; testes continuam a exigir uma ação explícita.
+
+Instalação: `node scripts/install-function-campaigns.mjs` (requer sessão Supabase
+CLI e `.env.local`). Aplica `supabase/function_email_campaigns.sql`, publica a
+função, guarda o segredo no Vault e ativa o cron. Não imprime credenciais.
+O segredo `CAMPAIGN_TRIGGER_SECRET` autentica a função, publicada sem validação JWT.
+A função não aceita destinatários ou datas no pedido e nunca envia antes do horário.

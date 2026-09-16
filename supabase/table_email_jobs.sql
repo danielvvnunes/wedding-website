@@ -18,8 +18,9 @@ alter table public.table_email_jobs
   add column if not exists imported boolean not null default false,
   add column if not exists last_checked_at timestamptz;
 drop index if exists public.table_email_jobs_active_email;
-create unique index if not exists table_email_jobs_active_kind_email
-  on public.table_email_jobs (kind, email) where status <> 'canceled';
+drop index if exists public.table_email_jobs_active_kind_email;
+create unique index if not exists table_email_jobs_campaign_email
+  on public.table_email_jobs (campaign_id, email);
 create unique index if not exists table_email_jobs_resend_id
   on public.table_email_jobs (resend_id);
 alter table public.table_email_jobs enable row level security;

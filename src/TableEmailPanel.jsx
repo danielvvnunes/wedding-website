@@ -18,6 +18,7 @@ export default function TableEmailPanel({ responses, password, onSaved, loading,
     catch { return defaultDate; }
   });
   const [jobs, setJobs] = useState([]);
+  const [campaign, setCampaign] = useState(null);
   const [configured, setConfigured] = useState(false);
   const [managementConfigured, setManagementConfigured] = useState(false);
   const [setupError, setSetupError] = useState("");
@@ -36,11 +37,11 @@ export default function TableEmailPanel({ responses, password, onSaved, loading,
   const summary = useMemo(() => collectTableRecipients(effectiveResponses), [effectiveResponses]);
   const dirty = Object.keys(edits).length > 0;
   const activeJobs = jobs.filter((job) => job.status !== "canceled");
-  const locked = activeJobs.length > 0;
+  const locked = campaign && ["processing", "sent"].includes(campaign.status);
   const preview = summary.recipients.find((group) => group.email === previewEmail);
   const previewContent = savedPreview || (preview ? (reminder ? renderReminderEmail(preview) : renderTableEmail(preview)) : null);
   const hasPreview = Boolean(previewContent);
-  const blocked = loading || dirty || !configured || !summary.recipients.length || summary.invalidEmail.length > 0 || (!reminder && summary.missingTable.length > 0) || summary.missingName.length > 0;
+  const blocked = loading || dirty || !configured || !summary.recipients.length || summary.recipients.length > 100;
   const testBlockReason = busy ? "Aguarda a conclusão da operação atual."
     : loading ? "Aguarda o carregamento dos convidados."
       : !testEmail.trim() ? "Indica abaixo o endereço que deve receber o teste."
@@ -61,6 +62,8 @@ export default function TableEmailPanel({ responses, password, onSaved, loading,
     try {
       const data = await api();
       setJobs(data.jobs);
+      setCampaign(data.campaign || null);
+      if (data.campaign) setScheduledLocal(new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(data.campaign.scheduled_at)).replace(" ", "T"));
       setConfigured(true);
       setManagementConfigured(data.managementConfigured === true);
       setSetupError("");
@@ -160,9 +163,8 @@ export default function TableEmailPanel({ responses, password, onSaved, loading,
     if (!window.confirm(`Agendar ${summary.recipients.length} emails para ${formatDate(scheduledAt)} (Lisboa), abrangendo ${summary.peopleCount} pessoas?`)) return;
     await run(async () => {
       try {
-        const { campaignId } = await api({ action: "prepare", scheduledAt, recipients: summary.recipients });
-        const current = await loadJobs();
-        await processJobs(current.filter((job) => job.campaign_id === campaignId && !job.resend_id && job.status !== "canceled"), "process");
+        await api({ action: "schedule-function", scheduledAt });
+        setMessage("Envio por função agendado. Os dados dos convidados serão lidos à hora marcada.");
       } finally { await loadJobs(); }
     });
   }
@@ -185,29 +187,36 @@ export default function TableEmailPanel({ responses, password, onSaved, loading,
     <h2 className="text-xl font-extrabold">{reminder ? "Lembrete do casamento" : "Destinatários e mesas"}</h2>
     <p className="mt-2 text-sm">{locked ? `${activeJobs.length} emails na campanha guardada` : `${summary.recipients.length} emails distintos · ${summary.peopleCount} pessoas com email`}</p>
     {reminder && <button type="button" className={`${buttonClass} mt-4`} disabled={busy || (!jobs.length && !summary.recipients.length)} onClick={() => {
-      if (jobs.length) previewJob(activeJobs[0] || jobs[0]);
-      else { setSavedPreview(null); setPreviewEmail(summary.recipients[0].email); }
+      if (!locked && summary.recipients.length) { setSavedPreview(null); setPreviewEmail(summary.recipients[0].email); }
+      else if (jobs.length) previewJob(activeJobs[0] || jobs[0]);
     }}>Pré-visualizar lembrete</button>}
     <div className="mt-5 space-y-5">
       <p className="text-sm">{reminder ? "Um lembrete por endereço, com saudação personalizada e ligação para o site." : "Um email por endereço, com os nomes e as mesas de todas as pessoas associadas."} Inclui todas as pessoas com email, independentemente da confirmação de presença.</p>
       {jobs.some(job => job.imported && !job.last_checked_at) && <p className="rounded-xl bg-[#f8f5ee] p-4 text-sm">Os agendamentos existentes foram associados pelos identificadores do Resend, sem reenviar emails. O estado importado regista a aceitação do agendamento; ainda não foi consultado novamente no Resend.</p>}
       {!locked && <div className="rounded-xl bg-[#f8f5ee] p-4 text-sm" role="status">
         <p>{summary.recipients.length > 100 ? "Ultrapassa o limite diário de 100 emails do plano gratuito." : `${Math.max(0, 100 - summary.recipients.length)} emails de margem face ao limite diário de 100 do plano gratuito.`} Os testes e outros envios do mesmo dia também contam; confirma a quota da conta antes de agendar.</p>
+        {!reminder && summary.missingTable.length > 0 && <p className="mt-2 font-bold">Preenche todas as mesas antes da hora marcada. Se faltar alguma, o lote não será enviado.</p>}
         <p className="mt-2">{summary.missingEmail.length} pessoas sem email · {summary.invalidEmail.length} emails com formato inválido{!reminder && ` · ${summary.missingTable.length} pessoas sem mesa`} · {summary.missingName.length} sem nome</p>
+      </div>}
+      {campaign && <div className="rounded-xl bg-[#b7c4b0]/20 p-4 text-sm" role="status">
+        <p className="font-bold">Envio por função · {formatDate(campaign.scheduled_at)} · Lisboa</p>
+        <p>{campaign.status === "pending" ? "Agendado: um único lote, com os dados dos convidados e mesas existentes à hora do envio." : campaign.status === "sent" ? "Lote enviado." : campaign.status === "canceled" ? "Agendamento cancelado." : "A processar o lote."}</p>
+        {campaign.error && <p role="alert">{campaign.error}</p>}
+        {campaign.status === "pending" && <button className={`${buttonClass} mt-3`} disabled={busy} onClick={() => { if (window.confirm("Cancelar este envio por função?")) run(async () => { await api({ action: "cancel-function" }); await loadJobs(); }); }}>Cancelar envio por função</button>}
       </div>}
       {setupError && <p className="rounded-xl bg-[#f8f5ee] p-4 text-sm" role="status">{setupError} <button type="button" className="underline" onClick={() => run(loadJobs)}>Verificar configuração</button></p>}
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-sm font-bold">Data e hora de envio — Lisboa
-          <input type="datetime-local" className="admin-field mt-2" value={locked ? new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(activeJobs[0].scheduled_at)).replace(" ", "T") : scheduledLocal} disabled={busy || locked} onChange={(event) => {
+          <input type="datetime-local" className="admin-field mt-2" value={locked ? new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(campaign.scheduled_at)).replace(" ", "T") : scheduledLocal} disabled={busy || locked} onChange={(event) => {
             setScheduledLocal(event.target.value);
             try { localStorage.setItem(dateKey, event.target.value); } catch { /* State remains editable when browser storage is unavailable. */ }
           }} />
         </label>
         {!locked && <><button type="button" className={buttonClass} disabled={busy || !dirty || loading} onClick={saveAssignments}>Guardar alterações</button>
-        <button type="button" className={buttonClass} disabled={busy || blocked} onClick={schedule}>Rever e agendar {summary.recipients.length} emails</button></>}
+        <button type="button" className={buttonClass} disabled={busy || blocked} onClick={schedule}>{campaign?.status === "pending" ? "Atualizar horário" : "Agendar envio por função"}</button></>}
       </div>
       {dirty && <p className="text-sm">Há alterações por guardar. <button type="button" disabled={busy} className="underline" onClick={() => { setEdits({}); setError(""); }}>Descartar alterações locais</button></p>}
-      {locked && <p className="text-sm">Esta campanha tem destinatários, conteúdo e data guardados. As pré-visualizações mostram esse conteúdo, mesmo que os dados dos convidados mudem entretanto.</p>}
+      {locked && <p className="text-sm">O envio desta campanha já começou. As pré-visualizações dos emails enviados mostram o conteúdo guardado.</p>}
       {!locked && <>
       <label className="block text-sm">Procurar por nome ou email<input className="admin-field mt-2" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
       <div className="max-h-[560px] space-y-3 overflow-y-auto">
@@ -247,7 +256,6 @@ export default function TableEmailPanel({ responses, password, onSaved, loading,
       {jobs.length > 0 && <div className="space-y-3">
         <h3 className="font-bold">Estado dos emails</h3>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={buttonClass} disabled={busy || !configured || !activeJobs.some((job) => !job.resend_id)} onClick={() => operate("process")}>Retomar agendamento</button>
           <button type="button" className={buttonClass} disabled={busy || !configured || !managementConfigured} onClick={() => operate("refresh")}>Atualizar entregas</button>
           <button type="button" className={buttonClass} disabled={busy || !configured || !activeJobs.length || (!managementConfigured && activeJobs.some(job => job.resend_id))} onClick={() => operate("cancel")}>Cancelar pendentes</button>
         </div>

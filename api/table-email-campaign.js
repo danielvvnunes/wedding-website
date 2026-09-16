@@ -1,6 +1,6 @@
-import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { collectTableRecipients, isValidEmail, renderTableEmail, validateSchedule } from "../src/lib/tableEmails.js";
+import { isValidEmail, renderTableEmail, validateSchedule } from "../src/lib/tableEmails.js";
 import { renderReminderEmail } from "../src/lib/reminderEmail.js";
 
 const clean = (value) => String(value || "").trim().replace(/^['"]|['"]$/g, "");
@@ -28,15 +28,6 @@ async function check(query) {
     : error.code === "23505" ? "Já existem emails preparados para estes endereços. Cancela os pendentes antes de preparar outra versão."
       : error.message, 409);
   return data;
-}
-
-async function allResponses(db) {
-  const rows = [];
-  for (let start = 0; ; start += 1000) {
-    const page = await check(db.from("rsvp").select("id, people").order("id").range(start, start + 999));
-    rows.push(...page);
-    if (page.length < 1000) return rows;
-  }
 }
 
 async function resend(path, { method = "GET", body, key } = {}) {
@@ -99,28 +90,27 @@ export function createCampaignHandler(kind) {
     const db = database();
     if (req.method === "GET") {
       const jobs = await check(db.from("table_email_jobs").select("id,campaign_id,kind,email,scheduled_at,status,resend_id,error,first_attempt_at,imported,last_checked_at").eq("kind", kind).order("created_at"));
-      return res.status(200).json({ jobs, managementConfigured: Boolean(clean(process.env.RESEND_MANAGEMENT_API_KEY)) });
+      const campaign = await check(db.from("function_email_campaigns").select("id,kind,scheduled_at,status,error,sent_at").eq("kind", kind).maybeSingle());
+      return res.status(200).json({ jobs, campaign, managementConfigured: Boolean(clean(process.env.RESEND_MANAGEMENT_API_KEY)) });
     }
 
-    if (body.action === "prepare") {
-      if (!process.env.RESEND_API_KEY) throw fail("Falta configurar RESEND_API_KEY.", 503);
+    if (body.action === "schedule-function") {
       const scheduledAt = validateSchedule(body.scheduledAt);
-      const summary = collectTableRecipients(await allResponses(db));
-      if (!summary.recipients.length) throw fail("Não há destinatários.");
-      if (summary.invalidEmail.length || summary.missingName.length || (kind === "table_assignment" && summary.missingTable.length)) throw fail("Corrige os emails, nomes e mesas em falta antes de preparar o envio.");
-      if (JSON.stringify(summary.recipients) !== JSON.stringify(body.recipients)) throw fail("A lista foi alterada. Atualiza as respostas e revê os destinatários.", 409);
-      const campaignId = createHash("sha256").update(JSON.stringify([kind, scheduledAt, summary.recipients])).digest("hex");
-      const existing = await check(db.from("table_email_jobs").select("id,campaign_id").eq("kind", kind).neq("status", "canceled"));
-      if (existing.length) {
-        if (existing.every((job) => job.campaign_id === campaignId) && existing.length === summary.recipients.length) return res.status(200).json({ campaignId });
-        throw fail("Existe uma versão preparada ou enviada. Cancela os pendentes antes de alterar a data ou as mesas.", 409);
-      }
-      await check(db.from("table_email_jobs").insert(summary.recipients.map((recipient) => ({
-        campaign_id: campaignId, kind, email: recipient.email, scheduled_at: scheduledAt,
-        payload: mailPayload(recipient, scheduledAt, kind),
-      }))));
-      return res.status(200).json({ campaignId });
+      const existing = await check(db.from("function_email_campaigns").select("*").eq("kind", kind).maybeSingle());
+      if (existing && !["pending", "canceled"].includes(existing.status)) throw fail("Esta campanha já começou. Não é possível reagendar.", 409);
+      const values = { scheduled_at: scheduledAt, status: "pending", error: null };
+      if (existing) {
+        const changed = await check(db.from("function_email_campaigns").update(values).eq("id", existing.id).in("status", ["pending", "canceled"]).select("id"));
+        if (!changed.length) throw fail("O envio já começou.", 409);
+      } else await check(db.from("function_email_campaigns").insert({ kind, ...values }));
+      return res.status(200).json({ ok: true });
     }
+    if (body.action === "cancel-function") {
+      const changed = await check(db.from("function_email_campaigns").update({ status: "canceled" }).eq("kind", kind).eq("status", "pending").select("id"));
+      if (!changed.length) throw fail("A campanha já começou ou não está pendente.", 409);
+      return res.status(200).json({ ok: true });
+    }
+    if (["prepare", "process"].includes(body.action)) throw fail("O envio passou a ser feito por função, num lote à hora marcada. Atualiza o painel.", 409);
 
     if (!["process", "cancel", "refresh", "preview"].includes(body.action) || !body.id) throw fail("Ação inválida.");
     const job = await check(db.from("table_email_jobs").select("*").eq("kind", kind).eq("id", body.id).single());
@@ -128,25 +118,6 @@ export function createCampaignHandler(kind) {
     if (body.action === "preview") {
       const { subject, html, text } = job.payload;
       return res.status(200).json({ email: job.email, subject, html, text });
-    }
-    if (body.action === "process") {
-      if (job.resend_id || job.status === "canceled") return res.status(200).json({ id: job.id, status: job.status });
-      validateSchedule(job.scheduled_at);
-      // Resend retains idempotency keys for 24h. Older ambiguous attempts require reconciliation.
-      if (job.first_attempt_at && Date.now() - Date.parse(job.first_attempt_at) > 23 * 3600_000) throw fail("Confirma este envio no Resend antes de repetir: a proteção contra duplicados está a expirar.", 409);
-      if (!job.first_attempt_at) {
-        const claimed = await check(db.from("table_email_jobs").update({ status: "processing", first_attempt_at: new Date().toISOString() }).eq("id", job.id).is("first_attempt_at", null).eq("status", "ready").select("id"));
-        if (!claimed.length) throw fail("Este email já está a ser processado. Atualiza o estado.", 409);
-      }
-      try {
-        const result = await resend("/emails", { method: "POST", body: job.payload, key: `table-job-${job.id}` });
-        if (!result.id) throw fail("O serviço não devolveu o identificador do email.", 502);
-        await check(db.from("table_email_jobs").update({ status: "scheduled", resend_id: result.id, error: null }).eq("id", job.id).neq("status", "canceled"));
-        return res.status(200).json({ id: job.id, status: "scheduled" });
-      } catch (error) {
-        await check(db.from("table_email_jobs").update({ error: error.message }).eq("id", job.id));
-        throw error;
-      }
     }
     if (body.action === "cancel") {
       if (job.status === "canceled") return res.status(200).json({ status: "canceled" });
