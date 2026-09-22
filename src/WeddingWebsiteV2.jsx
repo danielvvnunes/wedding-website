@@ -394,7 +394,7 @@ export default function WeddingWebsite() {
               <FeatureCard
                 number="01"
                 title="Cerimónia"
-                text="Às 11h30, na Igreja Matriz de Santa Iria de Azóia, onde vamos trocar os nossos votos rodeados por quem mais amamos."
+                text="Às 12h00, na Igreja Matriz de Santa Iria de Azóia, onde vamos trocar os nossos votos rodeados por quem mais amamos."
               />
               <FeatureCard
                 number="02"

@@ -1105,13 +1105,13 @@ export default function WeddingWebsiteV3() {
                 text="Brindes, conversas e primeiros abraços."
               />
               <Timeline
-                time="16:00"
-                title="Almoço"
+                time="17:00"
+                title="Refeição principal"
                 image={AlmoçoImg}
                 text="À mesa, com todos os que fazem parte da nossa história."
               />
               <Timeline
-                time="20:30"
+                time="21:00"
                 title="Bolo dos noivos"
                 image={BoloImg}
                 text="Um momento doce para celebrar juntos.."
@@ -1123,7 +1123,7 @@ export default function WeddingWebsiteV3() {
                 text="Música, dança e memórias para guardar."
               />
               <Timeline
-                time="23:00"
+                time="22:00"
                 title="Buffet"
                 image={BuffetImg}
                 text="Repor as energias para continuar a festa."
