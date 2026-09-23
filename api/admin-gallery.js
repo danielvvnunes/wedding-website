@@ -17,7 +17,10 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const offset = Number(new URL(req.url, 'https://local.test').searchParams.get('offset') || 0);
       if (!Number.isSafeInteger(offset) || offset < 0) return res.status(400).json({ error: 'Página inválida.' });
-      const items = check(await db.from('wedding_gallery').select('id,file_url,file_path,file_type,uploaded_by,caption,created_at').order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + 23));
+      const page = columns => db.from('wedding_gallery').select(columns).order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + 23);
+      let result = await page('id,file_url,file_path,file_type,uploaded_by,caption,created_at');
+      if (result.error?.code === '42703' && result.error.message?.includes('caption')) result = await page('id,file_url,file_path,file_type,uploaded_by,created_at');
+      const items = check(result);
       return res.status(200).json({ items, hasMore: items.length === 24 });
     }
     let body;
