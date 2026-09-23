@@ -1,112 +1,12 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import "./GalleryAppPage.css";
+import GalleryImage from "./GalleryImage";
 import { supabase } from "./lib/supabase";
 import { useSearchParams } from "react-router-dom";
 import {
   saveGuestInvitationSlug,
 } from "./lib/guestInvitation";
 
-const styles = `
-@import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap");
-
-.gallery-app {
-  font-family: "Urbanist", Arial, Helvetica, sans-serif;
-}
-
-.page-bg {
-  background:
-    radial-gradient(circle at 20% 8%, rgba(183,196,176,.18), transparent 28%),
-    radial-gradient(circle at 86% 38%, rgba(183,196,176,.12), transparent 26%),
-    #fbfaf5;
-}
-
-.section-cream {
-  background:
-    radial-gradient(circle at 82% 18%, rgba(205,184,146,.16), transparent 28%),
-    #f8f5ee;
-}
-
-.gold-line {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(205, 184, 146, 0.35),
-    rgba(244, 227, 189, 0.95),
-    rgba(205, 184, 146, 0.35),
-    transparent
-  );
-}
-
-.gold-accent {
-  display: inline-block;
-  background: linear-gradient(
-    105deg,
-    #b7975b 0%,
-    #cdb892 28%,
-    #f4e3bd 48%,
-    #cdb892 68%,
-    #a9874f 100%
-  );
-  background-size: 230% 230%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.upload-box {
-  border: 1px dashed rgba(205,184,146,.65);
-  background: rgba(255,255,255,.42);
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.phone-shell {
-  box-shadow:
-    0 28px 80px rgba(93, 109, 86, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
-}
-
-	.app-card {
-	  box-shadow: 0 14px 38px rgba(143,159,138,0.12);
-	}
-
-	.story-strip {
-	  backface-visibility: hidden;
-	  contain: layout paint;
-	  transform: translateZ(0);
-	}
-
-	.feed-post {
-	  content-visibility: auto;
-	  contain-intrinsic-size: 760px;
-	}
-
-	.media-placeholder {
-	  background:
-	    linear-gradient(90deg, rgba(248,245,238,0), rgba(255,255,255,.64), rgba(248,245,238,0)),
-	    #f8f5ee;
-	  background-size: 220% 100%;
-	  animation: media-shimmer 1.25s ease-in-out infinite;
-	}
-
-	@keyframes media-shimmer {
-	  0% {
-	    background-position: 120% 0;
-	  }
-	  100% {
-	    background-position: -120% 0;
-	  }
-	}
-	`;
-	
 const postDateFormatter = new Intl.DateTimeFormat("pt-PT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
 const STORY_PHOTO_DURATION = 5000;
@@ -115,13 +15,6 @@ const POST_PAGE_SIZE = 6;
 const POST_RENDER_BATCH = 4;
 const VISITOR_ID_STORAGE_KEY = "fd-gallery-visitor-id";
 const SUPABASE_IMAGE_BUCKET = "wedding-gallery";
-const IMAGE_UPLOAD_MAX_DIMENSION = 1920;
-const IMAGE_FEED_MAX_DIMENSION = 1280;
-const IMAGE_THUMB_MAX_DIMENSION = 360;
-const IMAGE_UPLOAD_QUALITY = 0.82;
-const IMAGE_FEED_QUALITY = 0.78;
-const IMAGE_THUMB_QUALITY = 0.7;
-const IMAGE_UPLOAD_MAX_BYTES = 1200 * 1024;
 const GALLERY_COLUMNS =
   "id, file_url, file_type, file_path, uploaded_by, caption, anonymous_id, created_at";
 const GALLERY_COLUMNS_WITHOUT_CAPTION =
@@ -166,13 +59,6 @@ function mapGalleryItem(item) {
 
 function isImageType(type) {
   return type?.startsWith("image/");
-}
-
-function shouldOptimizeImage(file) {
-  return (
-    isImageType(file.type) &&
-    !["image/gif", "image/svg+xml"].includes(file.type)
-  );
 }
 
 function getStoredVariantUrls(item) {
@@ -235,106 +121,6 @@ function getGalleryImageUrl(item, width, quality) {
   }
 }
 
-function getScaledDimensions(image, maxDimension) {
-  const scale = Math.min(
-    1,
-    maxDimension / Math.max(image.naturalWidth, image.naturalHeight),
-  );
-
-  return {
-    width: Math.max(1, Math.round(image.naturalWidth * scale)),
-    height: Math.max(1, Math.round(image.naturalHeight * scale)),
-  };
-}
-
-async function loadImageFromFile(file) {
-  const url = URL.createObjectURL(file);
-
-  try {
-    const image = new Image();
-    image.decoding = "async";
-
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = reject;
-      image.src = url;
-    });
-
-    return image;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-async function createImageVariant(image, fileName, maxDimension, quality) {
-  const { width, height } = getScaledDimensions(image, maxDimension);
-  const canvas = document.createElement("canvas");
-
-  canvas.width = width;
-  canvas.height = height;
-  canvas.getContext("2d").drawImage(image, 0, 0, width, height);
-
-  const blob = await new Promise((resolve) =>
-    canvas.toBlob(resolve, "image/jpeg", quality),
-  );
-
-  if (!blob) return null;
-
-  return new File([blob], fileName, {
-    type: "image/jpeg",
-    lastModified: Date.now(),
-  });
-}
-
-async function prepareFilesForUpload(file) {
-  if (!shouldOptimizeImage(file)) {
-    return {
-      original: file,
-      feed: null,
-      thumb: null,
-    };
-  }
-
-  try {
-    const image = await loadImageFromFile(file);
-    const optimizedOriginal = await createImageVariant(
-      image,
-      "original.jpg",
-      IMAGE_UPLOAD_MAX_DIMENSION,
-      IMAGE_UPLOAD_QUALITY,
-    );
-    const feed = await createImageVariant(
-      image,
-      "feed.jpg",
-      IMAGE_FEED_MAX_DIMENSION,
-      IMAGE_FEED_QUALITY,
-    );
-    const thumb = await createImageVariant(
-      image,
-      "thumb.jpg",
-      IMAGE_THUMB_MAX_DIMENSION,
-      IMAGE_THUMB_QUALITY,
-    );
-
-    return {
-      original:
-        optimizedOriginal &&
-        (file.size > IMAGE_UPLOAD_MAX_BYTES || optimizedOriginal.size < file.size)
-          ? optimizedOriginal
-          : file,
-      feed,
-      thumb,
-    };
-  } catch (error) {
-    console.error(error);
-    return {
-      original: file,
-      feed: null,
-      thumb: null,
-    };
-  }
-}
-
 function LazyVideo({
   src,
   className,
@@ -356,7 +142,7 @@ function LazyVideo({
           observer.disconnect();
         }
       },
-      { rootMargin: "700px 0px" },
+      { rootMargin: "250px 0px" },
     );
 
     observer.observe(containerRef.current);
@@ -380,13 +166,14 @@ function LazyVideo({
   );
 }
 
-async function fetchGalleryPage(from = 0, to = POST_PAGE_SIZE - 1, sortOrder = "recent") {
+async function fetchGalleryPage(from = 0, to = POST_PAGE_SIZE - 1, sortOrder = "recent", signal) {
   let response = await supabase
     .from("wedding_gallery")
     .select(GALLERY_COLUMNS)
     .order("created_at", { ascending: sortOrder === "oldest" })
     .order("id", { ascending: sortOrder === "oldest" })
-    .range(from, to);
+    .range(from, to)
+    .abortSignal(signal);
 
   if (response.error?.message?.includes("caption")) {
     response = await supabase
@@ -394,7 +181,8 @@ async function fetchGalleryPage(from = 0, to = POST_PAGE_SIZE - 1, sortOrder = "
       .select(GALLERY_COLUMNS_WITHOUT_CAPTION)
       .order("created_at", { ascending: sortOrder === "oldest" })
       .order("id", { ascending: sortOrder === "oldest" })
-      .range(from, to);
+      .range(from, to)
+    .abortSignal(signal);
   }
 
   return response;
@@ -446,6 +234,8 @@ export default function GalleryAppPage() {
   const loadedInteractionIds = useRef(new Set());
   const pageRequest = useRef(0);
   const loadingMoreRef = useRef(false);
+  const moreRequestController = useRef(null);
+  useEffect(() => () => moreRequestController.current?.abort(), []);
   const modalRef = useRef(null);
   const hasModal = isComposerOpen || !!commentSheetItem || !!selectedItem || storyViewerIndex !== null;
 
@@ -487,13 +277,15 @@ export default function GalleryAppPage() {
   useEffect(() => {
     const request = ++pageRequest.current;
     let cancelled = false;
+    const controller = new AbortController();
     async function loadGallery() {
       setIsGalleryLoading(true);
       setGalleryError(false);
       setHasMorePosts(false);
       setIsLoadingMorePosts(false);
+      moreRequestController.current?.abort();
       loadingMoreRef.current = false;
-      const { data, error } = await fetchGalleryPage(0, POST_PAGE_SIZE - 1, sortOrder);
+      const { data, error } = await fetchGalleryPage(0, POST_PAGE_SIZE - 1, sortOrder, controller.signal);
       if (cancelled || request !== pageRequest.current) return;
       if (error) {
         console.error(error);
@@ -507,11 +299,12 @@ export default function GalleryAppPage() {
       setIsGalleryLoading(false);
     }
     loadGallery();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); pageRequest.current = request + 1; };
   }, [sortOrder, reloadKey]);
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     async function loadInteractions() {
       if (!visitorId || !uploadedItems.length) {
         loadedInteractionIds.current.clear();
@@ -531,14 +324,14 @@ export default function GalleryAppPage() {
         supabase
           .from("wedding_gallery_likes")
           .select("gallery_item_id, anonymous_id")
-          .in("gallery_item_id", galleryIds),
+          .in("gallery_item_id", galleryIds).abortSignal(controller.signal),
         supabase
           .from("wedding_gallery_comments")
           .select(
             "id, gallery_item_id, commenter_name, comment_text, anonymous_id, created_at",
           )
           .in("gallery_item_id", galleryIds)
-          .order("created_at", { ascending: true }),
+          .order("created_at", { ascending: true }).abortSignal(controller.signal),
       ]);
 
       if (cancelled) return;
@@ -569,10 +362,7 @@ export default function GalleryAppPage() {
         const groupedComments = Object.fromEntries(galleryIds.map((id) => [id, []]));
 
         comments.forEach((comment) => {
-          groupedComments[comment.gallery_item_id] = [
-            ...(groupedComments[comment.gallery_item_id] || []),
-            comment,
-          ];
+          (groupedComments[comment.gallery_item_id] ||= []).push(comment);
         });
 
         setCommentsByItem((current) => ({ ...current, ...groupedComments }));
@@ -580,7 +370,7 @@ export default function GalleryAppPage() {
     }
 
     const timer = window.setTimeout(loadInteractions, 900);
-    return () => { cancelled = true; window.clearTimeout(timer); };
+    return () => { cancelled = true; controller.abort(); window.clearTimeout(timer); };
   }, [uploadedItems, visitorId]);
 
   useEffect(() => {
@@ -654,6 +444,7 @@ export default function GalleryAppPage() {
     setStatus(null);
 
     try {
+      const { prepareFilesForUpload } = await import("./lib/galleryUpload.js");
       const uploaded = [];
 
       for (const [index, selectedFile] of files.entries()) {
@@ -787,8 +578,10 @@ export default function GalleryAppPage() {
 
     const from = uploadedItems.length;
     const to = from + POST_PAGE_SIZE - 1;
-    const { data, error } = await fetchGalleryPage(from, to, sortOrder);
-    if (request !== pageRequest.current) return;
+    const controller = new AbortController();
+    moreRequestController.current = controller;
+    const { data, error } = await fetchGalleryPage(from, to, sortOrder, controller.signal);
+    if (controller.signal.aborted || request !== pageRequest.current) return;
     loadingMoreRef.current = false;
 
     if (error) {
@@ -1208,7 +1001,6 @@ export default function GalleryAppPage() {
 
   return (
     <main className="gallery-app page-bg min-h-screen overflow-x-hidden text-[#64715f]">
-      <style>{styles}</style>
 
       <header className="album-header sticky top-0 z-40 border-b border-[#d8d0bd]/60 bg-[#fbfaf5] px-4 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
@@ -1286,7 +1078,7 @@ export default function GalleryAppPage() {
 	                          className="h-full w-full object-cover"
 	                          loading={index < 4 ? "eager" : "lazy"}
 	                          decoding="async"
-	                          fetchPriority={index < 2 ? "high" : "low"}
+	                          fetchPriority="low"
 	                          onError={(event) => {
 	                            if (event.currentTarget.src !== item.url) {
 	                              event.currentTarget.src = item.url;
@@ -1619,19 +1411,13 @@ export default function GalleryAppPage() {
 	                          playsInline
 	                        />
 	                      ) : (
-	                        <img
-	                          src={item.feedUrl}
-	                          alt={item.caption || `Memória partilhada por ${item.uploadedBy || "Convidado"}`}
-	                          className="h-full w-full object-contain"
-	                          loading={index === 0 ? "eager" : "lazy"}
-	                          decoding="async"
-	                          fetchPriority={index === 0 ? "high" : "low"}
-	                          onError={(event) => {
-	                            if (event.currentTarget.src !== item.url) {
-	                              event.currentTarget.src = item.url;
-	                            }
-	                          }}
-	                        />
+	                        <GalleryImage
+                            src={item.feedUrl}
+                            fallbackSrc={item.url}
+                            alt={item.caption || `Memória partilhada por ${item.uploadedBy || "Convidado"}`}
+                            className="h-full w-full object-contain"
+                            priority={index === 0}
+                          />
 	                      )}
                     </button>
 
