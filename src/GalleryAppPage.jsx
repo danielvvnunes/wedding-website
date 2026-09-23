@@ -228,7 +228,7 @@ export default function GalleryAppPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [composerMode, setComposerMode] = useState("post");
-  const [viewMode, setViewMode] = useState("feed");
+  const [viewMode, setViewMode] = useState("grid");
   const [galleryError, setGalleryError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const loadedInteractionIds = useRef(new Set());
