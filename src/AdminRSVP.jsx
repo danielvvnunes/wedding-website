@@ -962,6 +962,8 @@ export default function AdminRSVP() {
               </button>
             </div>
 
+            <a href="/admin/galeria" className="mt-4 inline-block rounded-full border border-[#cdb892] px-5 py-3 text-sm font-bold">Gerir e apagar publicações →</a>
+
             {isGalleryPanelOpen && (
               <div className="mt-5">
                 <div className="flex flex-col gap-3 sm:flex-row">
