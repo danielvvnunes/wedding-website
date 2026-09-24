@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import "./GalleryAppPage.css";
-import GalleryImage from "./GalleryImage";
+import GalleryCarousel from "./GalleryCarousel";
 import { supabase } from "./lib/supabase";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -16,9 +16,9 @@ const POST_RENDER_BATCH = 4;
 const VISITOR_ID_STORAGE_KEY = "fd-gallery-visitor-id";
 const SUPABASE_IMAGE_BUCKET = "wedding-gallery";
 const GALLERY_COLUMNS =
-  "id, file_url, file_type, file_path, uploaded_by, caption, anonymous_id, created_at";
+  "id, file_url, file_type, file_path, uploaded_by, caption, anonymous_id, created_at, media";
 const GALLERY_COLUMNS_WITHOUT_CAPTION =
-  "id, file_url, file_type, file_path, uploaded_by, anonymous_id, created_at";
+  "id, file_url, file_type, file_path, uploaded_by, anonymous_id, created_at, media";
 
 function getOrCreateVisitorId() {
   const storedVisitorId = localStorage.getItem(VISITOR_ID_STORAGE_KEY);
@@ -37,6 +37,7 @@ function mapGalleryItem(item) {
   const variantUrls = getStoredVariantUrls({ filePath, type });
 
   return {
+    media: Array.isArray(item.media) ? item.media.map(file => mapGalleryItem({ ...file, uploaded_by: item.uploaded_by, caption: item.caption, created_at: item.created_at, anonymous_id: item.anonymous_id })) : undefined,
     galleryId: String(filePath || item.id || originalUrl),
     url: originalUrl,
     thumbUrl:
@@ -119,51 +120,6 @@ function getGalleryImageUrl(item, width, quality) {
     console.error(error);
     return item.originalUrl;
   }
-}
-
-function LazyVideo({
-  src,
-  className,
-  autoPlay = false,
-  controls = false,
-  muted = false,
-  playsInline = true,
-}) {
-  const containerRef = useRef(null);
-  const [shouldLoad, setShouldLoad] = useState(autoPlay);
-
-  useEffect(() => {
-    if (shouldLoad || !containerRef.current) return undefined;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShouldLoad(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "250px 0px" },
-    );
-
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, [shouldLoad]);
-
-  return (
-    <div ref={containerRef} className={`bg-[#f8f5ee] ${className}`}>
-      {shouldLoad && (
-        <video
-          src={src}
-          className={className}
-          preload={autoPlay ? "auto" : "metadata"}
-          autoPlay={autoPlay}
-          controls={controls}
-          muted={muted}
-          playsInline={playsInline}
-        />
-      )}
-    </div>
-  );
 }
 
 async function fetchGalleryPage(from = 0, to = POST_PAGE_SIZE - 1, sortOrder = "recent", signal) {
@@ -443,6 +399,8 @@ export default function GalleryAppPage() {
     setUploadProgress("A preparar as imagens...");
     setStatus(null);
 
+    const uploadedPaths = [];
+    let insertStarted = false;
     try {
       const { prepareFilesForUpload } = await import("./lib/galleryUpload.js");
       const uploaded = [];
@@ -501,6 +459,7 @@ export default function GalleryAppPage() {
             });
 
           if (error) throw error;
+          uploadedPaths.push(uploadItem.path);
         }
 
         const { data } = supabase.storage
@@ -509,47 +468,17 @@ export default function GalleryAppPage() {
 
         const publicUrl = data.publicUrl;
 
-        let insertResponse = await supabase
-          .from("wedding_gallery")
-          .insert({
-            uploaded_by: name,
-            caption: caption.trim() || null,
-            file_path: filePath,
-            file_url: publicUrl,
-            file_type: originalFile.type,
-            anonymous_id: visitorId,
-          });
-
-        if (insertResponse.error?.message?.includes("caption")) {
-          insertResponse = await supabase.from("wedding_gallery").insert({
-            uploaded_by: name,
-            file_path: filePath,
-            file_url: publicUrl,
-            file_type: originalFile.type,
-            anonymous_id: visitorId,
-          });
-        }
-
-        if (insertResponse.error) throw insertResponse.error;
-
-        setUploadProgress(
-          index + 1 === files.length
-            ? "A atualizar a galeria..."
-            : `A preparar ${index + 2} de ${files.length}...`,
-        );
-
-        uploaded.push(mapGalleryItem({
-          file_path: filePath,
-          file_url: publicUrl,
-          file_type: originalFile.type,
-          uploaded_by: name,
-          caption: caption.trim() || null,
-          created_at: new Date().toISOString(),
-          anonymous_id: visitorId,
-        }));
+        uploaded.push({ file_path: filePath, file_url: publicUrl, file_type: originalFile.type });
       }
+      // Publish the post only after every file is uploaded: pagination and social
+      // interactions address one database row, never a partly loaded group.
+      const post = { ...uploaded[0], media: uploaded.length > 1 ? uploaded : null,
+        uploaded_by: name, caption: caption.trim() || null, anonymous_id: visitorId };
+      insertStarted = true;
+      const { data: inserted, error: insertError } = await supabase.from("wedding_gallery").insert(post).select(GALLERY_COLUMNS).single();
+      if (insertError) throw insertError;
+      setUploadedItems((current) => [mapGalleryItem(inserted), ...current]);
 
-      setUploadedItems((current) => [...uploaded, ...current]);
 
       setFiles([]);
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -561,6 +490,9 @@ export default function GalleryAppPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (storyCameraInputRef.current) storyCameraInputRef.current.value = "";
     } catch (error) {
+      if (!insertStarted && uploadedPaths.length) {
+        await supabase.storage.from(SUPABASE_IMAGE_BUCKET).remove(uploadedPaths).catch(console.error);
+      }
       console.error(error);
       setStatus("error");
     } finally {
@@ -848,7 +780,7 @@ export default function GalleryAppPage() {
   async function deletePost(item) {
     if (item.anonymousId !== visitorId) return;
 
-    const confirmed = window.confirm("Queres apagar este post?");
+    const confirmed = window.confirm(`Queres apagar este post${item.media?.length ? ` e os seus ${item.media.length} ficheiros` : ""}?`);
     if (!confirmed) return;
 
     setDeleteErrors((current) => ({ ...current, [item.galleryId]: "" }));
@@ -899,7 +831,7 @@ export default function GalleryAppPage() {
     if (item.filePath) {
       const { error: storageError } = await supabase.storage
         .from(SUPABASE_IMAGE_BUCKET)
-        .remove(getStoredVariantPaths(item.filePath, item.type));
+        .remove((item.media || [item]).flatMap(file => getStoredVariantPaths(file.filePath, file.type)));
 
       if (storageError) console.error(storageError);
     }
@@ -1134,7 +1066,7 @@ export default function GalleryAppPage() {
                     {composerMode === "story"
                       ? "Em sequência nos stories e guardada nos posts"
                       : files.length
-                        ? `${files.length} ${files.length === 1 ? "ficheiro" : "ficheiros"} · Publicar no feed`
+                        ? `${files.length} ${files.length === 1 ? "ficheiro" : "ficheiros num carrossel"} · Um único post`
                         : "Fotos ou vídeos · Publicar no feed"}
                   </p>
                 </div>
@@ -1397,29 +1329,7 @@ export default function GalleryAppPage() {
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setSelectedItem(item)}
-                      aria-label={`Abrir memória de ${item.uploadedBy || "Convidado"}`}
-                      className="album-post-media flex aspect-[4/5] w-full cursor-zoom-in items-center justify-center bg-[#f8f5ee]"
-                    >
-	                      {item.type?.startsWith("video/") ? (
-	                        <LazyVideo
-	                          src={item.url}
-	                          className="h-full w-full object-contain"
-	                          muted
-	                          playsInline
-	                        />
-	                      ) : (
-	                        <GalleryImage
-                            src={item.feedUrl}
-                            fallbackSrc={item.url}
-                            alt={item.caption || `Memória partilhada por ${item.uploadedBy || "Convidado"}`}
-                            className="h-full w-full object-contain"
-                            priority={index === 0}
-                          />
-	                      )}
-                    </button>
+                    <GalleryCarousel item={item} priority={index === 0} onOpen={slide => setSelectedItem({ ...item, initialIndex: slide })} />
 
                     <div className="px-4 py-3">
                       <div className="flex items-center justify-between">
@@ -1895,26 +1805,7 @@ export default function GalleryAppPage() {
               Fechar
             </button>
 
-            {selectedItem.type?.startsWith("video/") ? (
-              <video
-                src={selectedItem.url}
-                controls
-                autoPlay
-                className="max-h-[82vh] w-full rounded-[1.5rem] object-contain"
-              />
-            ) : (
-              <img
-                src={selectedItem.url}
-                alt=""
-                className="max-h-[82vh] w-full rounded-[1.5rem] object-contain"
-                decoding="async"
-                onError={(event) => {
-                  if (event.currentTarget.src !== selectedItem.url) {
-                    event.currentTarget.src = selectedItem.url;
-                  }
-                }}
-              />
-            )}
+            <GalleryCarousel item={selectedItem} expanded initialIndex={selectedItem.initialIndex || 0} />
           </div>
         </div>
       )}

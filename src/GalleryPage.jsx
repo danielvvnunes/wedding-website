@@ -1,3 +1,4 @@
+import { flattenGalleryMedia } from "./lib/galleryMedia";
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import { Link, useSearchParams } from "react-router-dom";
@@ -90,7 +91,7 @@ export default function GalleryPage() {
       }
 
       setUploadedItems(
-        data.map((item) => ({
+        flattenGalleryMedia(data).map((item) => ({
           url: item.file_url,
           type: item.file_type,
           uploadedBy: item.uploaded_by,

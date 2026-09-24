@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import GalleryCarousel from './GalleryCarousel';
 import { Link } from 'react-router-dom';
 
 const button = 'rounded-full border border-[#cdb892] px-4 py-2 text-sm font-bold disabled:opacity-40';
@@ -30,7 +31,7 @@ export default function AdminGalleryPage() {
     finally { setBusy(false); }
   }
   async function remove(item) {
-    if (!window.confirm(`Apagar definitivamente esta publicação de ${item.uploaded_by || 'Convidado'}?\nSerão eliminados o ficheiro, as miniaturas, os gostos e os comentários. Esta ação não pode ser desfeita.`)) return;
+    if (!window.confirm(`Apagar definitivamente esta publicação de ${item.uploaded_by || 'Convidado'}?\nSerão eliminados todos os ficheiros desta publicação, as miniaturas, os gostos e os comentários. Esta ação não pode ser desfeita.`)) return;
     setBusy(true); setError(''); setMessage('');
     try {
       await api(0, { action: 'delete', id: String(item.id) });
@@ -51,7 +52,7 @@ export default function AdminGalleryPage() {
         <div className="mb-5 flex gap-3"><button className={button} disabled={busy} onClick={() => load()}>Atualizar</button><button className={button} disabled={busy} onClick={() => { setAuthenticated(false); setPassword(''); setItems([]); setMessage(''); }}>Sair</button></div>
         {!items.length && <p>A galeria está vazia.</p>}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{items.map(item => <article key={item.id} className="overflow-hidden rounded-2xl border border-[#ddd4c0] bg-white">
-          {item.file_type?.startsWith('video/') ? <video src={item.file_url} controls preload="none" className="aspect-square w-full bg-[#f8f5ee] object-contain" /> : <a href={item.file_url} target="_blank" rel="noreferrer" aria-label={`Abrir fotografia de ${item.uploaded_by || 'Convidado'}`}><img src={item.file_url} alt={item.caption || 'Fotografia do casamento'} loading="lazy" decoding="async" className="aspect-square w-full object-cover" /></a>}
+          <GalleryCarousel item={{ uploadedBy: item.uploaded_by, caption: item.caption, media: (item.media?.length ? item.media : [item]).map(file => ({ url: file.file_url, feedUrl: file.file_url, type: file.file_type })) }} onOpen={index => window.open((item.media?.length ? item.media : [item])[index].file_url, '_blank', 'noopener,noreferrer')} />
           <div className="space-y-3 p-4"><p className="font-bold">{item.uploaded_by || 'Convidado'}</p>{item.caption && <p className="text-sm">{item.caption}</p>}<button className={`${button} text-red-700`} disabled={busy} onClick={() => remove(item)}>Apagar publicação</button></div>
         </article>)}</div>
         {hasMore && <button className={`${button} mt-6`} disabled={busy} onClick={() => load(true)}>Carregar mais</button>}

@@ -18,26 +18,29 @@ export default async function handler(req, res) {
       const offset = Number(new URL(req.url, 'https://local.test').searchParams.get('offset') || 0);
       if (!Number.isSafeInteger(offset) || offset < 0) return res.status(400).json({ error: 'Página inválida.' });
       const page = columns => db.from('wedding_gallery').select(columns).order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + 23);
-      let result = await page('id,file_url,file_path,file_type,uploaded_by,caption,created_at');
-      if (result.error?.code === '42703' && result.error.message?.includes('caption')) result = await page('id,file_url,file_path,file_type,uploaded_by,created_at');
+      let result = await page('id,file_url,file_path,file_type,uploaded_by,caption,created_at,media');
+      if (result.error?.code === '42703' && result.error.message?.includes('caption')) result = await page('id,file_url,file_path,file_type,uploaded_by,created_at,media');
       const items = check(result);
       return res.status(200).json({ items, hasMore: items.length === 24 });
     }
     let body;
     try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; } catch { return res.status(400).json({ error: 'Pedido inválido.' }); }
     if (body?.action !== 'delete' || typeof body.id !== 'string' || !/^[a-zA-Z0-9-]{1,64}$/.test(body.id)) return res.status(400).json({ error: 'Publicação inválida.' });
-    const item = check(await db.from('wedding_gallery').select('id,file_path,file_type,file_url').eq('id', body.id).maybeSingle());
+    const item = check(await db.from('wedding_gallery').select('id,file_path,file_type,file_url,media').eq('id', body.id).maybeSingle());
     if (!item) return res.status(200).json({ deleted: body.id });
     // Resolve all paths on the server: the client can never supply a storage path.
-    if (item.file_path) {
-      const path = item.file_path;
+    const paths = [];
+    const files = item.media?.length ? item.media : [item];
+    for (const file of files) {
+      if (!file.file_path) continue;
+      const path = file.file_path;
       if (path.startsWith('/') || path.split('/').includes('..')) throw new Error('Invalid stored path');
       const original = path.match(/^(.*\/)?([^/]+)\/original\.[^/.]+$/);
       const base = original ? `${original[1] || ''}${original[2]}` : path.replace(/\.[^/.]+$/, '');
-      const paths = [path];
-      if (item.file_type?.startsWith('image/')) paths.push(...['feed.jpg','thumb.jpg','feed.webp','thumb.webp'].map(name => `${base}/${name}`));
-      check(await db.storage.from('wedding-gallery').remove(paths));
+      paths.push(path);
+      if (file.file_type?.startsWith('image/')) paths.push(...['feed.jpg','thumb.jpg','feed.webp','thumb.webp'].map(name => `${base}/${name}`));
     }
+    if (paths.length) check(await db.storage.from('wedding-gallery').remove([...new Set(paths)]));
     const galleryId = String(item.file_path || item.id || item.file_url);
     check(await db.from('wedding_gallery_comments').delete().eq('gallery_item_id', galleryId));
     check(await db.from('wedding_gallery_likes').delete().eq('gallery_item_id', galleryId));

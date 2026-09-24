@@ -1,3 +1,4 @@
+import { flattenGalleryMedia } from "./lib/galleryMedia";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "./lib/supabase";
@@ -32,7 +33,7 @@ export default function LiveWallPage() {
     }
 
     setItems(
-      data.map((item) => ({
+      flattenGalleryMedia(data).map((item) => ({
         id: String(item.file_path || item.id || item.file_url),
         url: item.file_url,
         type: item.file_type,

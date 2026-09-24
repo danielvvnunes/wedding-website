@@ -1,3 +1,4 @@
+import { flattenGalleryMedia } from "./lib/galleryMedia";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { Link } from "react-router-dom";
@@ -511,7 +512,7 @@ export default function AdminRSVP() {
       console.error(error);
       setGalleryError("Erro ao carregar a galeria.");
     } else {
-      setGalleryItems(data ?? []);
+      setGalleryItems(flattenGalleryMedia(data ?? []));
     }
 
     setGalleryLoading(false);
