@@ -674,13 +674,6 @@ function SectionNav({ guestSlug }) {
             Localização
           </Link>
 
-          <Link
-            to={`/galeria${conviteQuery}`}
-            className="rounded-full px-3 py-2 transition hover:bg-[#cdb892]/15 hover:text-[#cdb892]"
-          >
-            Galeria
-          </Link>
-
           <a
             href="#rsvp"
             className="rounded-full border border-[#cdb892]/45 px-3 py-2 text-[#cdb892] transition hover:bg-[#cdb892] hover:text-white"
